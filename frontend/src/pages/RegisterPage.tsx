@@ -193,9 +193,8 @@ export default function RegisterPage() {
             <div className="space-y-1.5 pt-1 text-[11px] text-zinc-400">
               <div className="flex items-center gap-1.5">
                 <CheckCircle2
-                  className={`w-3.5 h-3.5 ${
-                    isPasswordLongEnough ? 'text-emerald-400' : 'text-zinc-600'
-                  }`}
+                  className={`w-3.5 h-3.5 ${isPasswordLongEnough ? 'text-emerald-400' : 'text-zinc-600'
+                    }`}
                 />
                 <span className={isPasswordLongEnough ? 'text-zinc-200' : 'text-zinc-500'}>
                   At least 6 characters
@@ -204,9 +203,8 @@ export default function RegisterPage() {
               {confirmPassword && (
                 <div className="flex items-center gap-1.5">
                   <CheckCircle2
-                    className={`w-3.5 h-3.5 ${
-                      doPasswordsMatch ? 'text-emerald-400' : 'text-zinc-600'
-                    }`}
+                    className={`w-3.5 h-3.5 ${doPasswordsMatch ? 'text-emerald-400' : 'text-zinc-600'
+                      }`}
                   />
                   <span className={doPasswordsMatch ? 'text-zinc-200' : 'text-zinc-500'}>
                     Passwords match
