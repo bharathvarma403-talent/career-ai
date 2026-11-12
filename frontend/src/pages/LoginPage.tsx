@@ -62,10 +62,10 @@ export default function LoginPage() {
             C/
           </div>
           <h1 className="text-xl font-semibold tracking-tight text-white">
-            Sign in to CareerAI
+            Sign in
           </h1>
           <p className="text-xs text-zinc-400">
-            Access your candidate dossier, ATS diagnostic reports, and career tracks.
+            Welcome back. Enter your details to continue.
           </p>
         </div>
 
@@ -142,7 +142,7 @@ export default function LoginPage() {
             <p className="text-xs text-zinc-400">
               Don't have an account?{' '}
               <Link to="/register" className="text-white hover:underline font-medium">
-                Create one now
+                Create account
               </Link>
             </p>
           </div>

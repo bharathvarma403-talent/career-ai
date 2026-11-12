@@ -6,7 +6,6 @@ import {
   AlertCircle,
   X,
   ArrowRight,
-  Shield,
   Loader2
 } from 'lucide-react'
 
@@ -53,12 +52,12 @@ export default function ResumeUpload() {
     const isValidExt = validExtensions.some((ext) => name.endsWith(ext))
 
     if (!isValidExt) {
-      setError('Unsupported file type. Please upload a PDF or DOCX document.')
+      setError('Please upload a PDF or DOCX file.')
       return
     }
 
     if (selectedFile.size > 10 * 1024 * 1024) {
-      setError('File exceeds 10MB limit. Please upload an optimized document.')
+      setError('File exceeds 10MB limit.')
       return
     }
 
@@ -68,28 +67,24 @@ export default function ResumeUpload() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!file) {
-      setError('Please select a resume file to audit.')
+      setError('Please select a file to upload.')
       return
     }
 
     setError(null)
     setUploading(true)
-    setUploadStage('Uploading document to local parser...')
+    setUploadStage('Uploading document...')
 
     const formData = new FormData()
     formData.append('file', file)
 
     const stageTimer1 = setTimeout(() => {
-      setUploadStage('Extracting document sections, employment history & contact info...')
+      setUploadStage('Extracting sections and text...')
     }, 1500)
 
     const stageTimer2 = setTimeout(() => {
-      setUploadStage('Auditing ATS impact metrics, action verbs & grammar...')
+      setUploadStage('Analyzing bullet points and keywords...')
     }, 3200)
-
-    const stageTimer3 = setTimeout(() => {
-      setUploadStage('Compiling section scores & generating bullet rewrites...')
-    }, 5500)
 
     try {
       const res = await fetch('/api/resumes/upload', {
@@ -102,12 +97,11 @@ export default function ResumeUpload() {
 
       clearTimeout(stageTimer1)
       clearTimeout(stageTimer2)
-      clearTimeout(stageTimer3)
 
       const data = await res.json()
 
       if (!res.ok) {
-        throw new Error(data.detail || 'Resume upload and analysis failed.')
+        throw new Error(data.detail || 'Upload failed. Please try again.')
       }
 
       const resumeId = data.resume_id || data.id
@@ -119,8 +113,7 @@ export default function ResumeUpload() {
     } catch (err: any) {
       clearTimeout(stageTimer1)
       clearTimeout(stageTimer2)
-      clearTimeout(stageTimer3)
-      setError(err.message || 'An error occurred during resume audit processing.')
+      setError(err.message || 'An error occurred during resume audit.')
       setUploading(false)
     }
   }
@@ -132,34 +125,23 @@ export default function ResumeUpload() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-6">
-      {/* Header */}
+    <div className="max-w-2xl mx-auto px-4 py-16 space-y-6">
       <div className="space-y-1">
-        <div className="text-xs font-mono uppercase text-zinc-400">
-          Intake / ATS Document Diagnostic
-        </div>
-        <h1 className="text-2xl font-semibold text-white">
-          Upload Resume for Diagnostic Audit
-        </h1>
-        <p className="text-xs sm:text-sm text-zinc-400">
-          Submit your PDF or DOCX file to evaluate formatting hygiene, quantified impact density, and section parseability.
+        <h1 className="text-2xl font-bold text-white">Upload Your Resume</h1>
+        <p className="text-xs text-zinc-400">
+          Supported formats: PDF or DOCX (max 10MB).
         </p>
       </div>
 
-      {/* Error Callout */}
       {error && (
-        <div className="p-3.5 rounded bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-start gap-2.5">
-          <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-          <div>
-            <div className="font-semibold text-rose-200">Processing Interrupted</div>
-            <div>{error}</div>
-          </div>
+        <div className="p-3 rounded bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+          <span>{error}</span>
         </div>
       )}
 
-      {/* Upload Panel */}
-      <div className="surface-panel p-6 sm:p-8 space-y-6">
-        <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="surface-panel p-6 sm:p-8 space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <input
             ref={fileInputRef}
             type="file"
@@ -176,8 +158,8 @@ export default function ResumeUpload() {
               onClick={() => fileInputRef.current?.click()}
               className={`border border-dashed rounded-lg p-10 text-center cursor-pointer transition flex flex-col items-center justify-center gap-3 ${
                 isDragging
-                  ? 'border-zinc-400 bg-[#16181E]'
-                  : 'border-[#262830] hover:border-zinc-500 hover:bg-[#101216]'
+                  ? 'border-zinc-300 bg-[#16181E]'
+                  : 'border-[#262830] hover:border-zinc-400 hover:bg-[#101216]'
               }`}
             >
               <div className="w-10 h-10 rounded bg-[#181A1F] border border-[#272A31] flex items-center justify-center text-zinc-400">
@@ -185,17 +167,10 @@ export default function ResumeUpload() {
               </div>
 
               <div className="space-y-1">
-                <div className="text-xs sm:text-sm font-medium text-white">
-                  Click to select file or drag document here
+                <div className="text-sm font-medium text-white">
+                  Click to choose file or drag it here
                 </div>
-                <p className="text-xs text-zinc-400">
-                  Supported formats: PDF, DOCX (Maximum file size 10MB)
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2 text-[11px] text-zinc-400 pt-1">
-                <Shield className="w-3.5 h-3.5 text-zinc-400" />
-                <span>Encrypted in memory • Isolated candidate storage</span>
+                <p className="text-xs text-zinc-500">PDF, DOCX up to 10MB</p>
               </div>
             </div>
           ) : (
@@ -210,7 +185,7 @@ export default function ResumeUpload() {
                       {file.name}
                     </div>
                     <div className="text-[11px] text-zinc-400 tabular-data">
-                      {formatFileSize(file.size)} • Ready for processing
+                      {formatFileSize(file.size)}
                     </div>
                   </div>
                 </div>
@@ -220,7 +195,7 @@ export default function ResumeUpload() {
                     type="button"
                     onClick={() => setFile(null)}
                     className="p-1 rounded text-zinc-500 hover:text-zinc-300 hover:bg-[#181A1F] transition"
-                    title="Remove file"
+                    title="Remove"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -230,25 +205,21 @@ export default function ResumeUpload() {
               {uploading && (
                 <div className="p-3 rounded bg-[#121316] border border-[#202227] space-y-2">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-zinc-300 font-medium flex items-center gap-2">
+                    <span className="text-zinc-300 flex items-center gap-2">
                       <Loader2 className="w-3.5 h-3.5 animate-spin text-zinc-400" />
                       <span>{uploadStage}</span>
                     </span>
-                    <span className="text-zinc-400 font-mono text-[11px]">Processing</span>
+                    <span className="text-zinc-500 font-mono text-[11px]">Analyzing...</span>
                   </div>
                   <div className="w-full h-1 bg-[#1C1E24] rounded-full overflow-hidden">
-                    <div className="h-full bg-zinc-400 rounded-full animate-pulse w-3/4" />
+                    <div className="h-full bg-zinc-300 rounded-full animate-pulse w-3/4" />
                   </div>
                 </div>
               )}
             </div>
           )}
 
-          <div className="flex items-center justify-between pt-2">
-            <div className="text-[11px] text-zinc-400">
-              Evaluates impact metrics, section parseability, and grammar.
-            </div>
-
+          <div className="flex items-center justify-end pt-1">
             <button
               type="submit"
               disabled={!file || uploading}
@@ -261,35 +232,13 @@ export default function ResumeUpload() {
                 </>
               ) : (
                 <>
-                  <span>Begin Diagnostic</span>
+                  <span>Audit Resume</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </>
               )}
             </button>
           </div>
         </form>
-      </div>
-
-      {/* Parsing Criteria Specifications */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-        <div className="p-3.5 rounded-lg bg-[#0E0F12] border border-[#202227] space-y-1">
-          <div className="font-medium text-white">Section Parseability</div>
-          <p className="text-zinc-400 text-[11px]">
-            Verifies Contact, Summary, Experience, and Skills header detection.
-          </p>
-        </div>
-        <div className="p-3.5 rounded-lg bg-[#0E0F12] border border-[#202227] space-y-1">
-          <div className="font-medium text-white">Quantifiable Metric Density</div>
-          <p className="text-zinc-400 text-[11px]">
-            Flags unquantified passive assertions and delivers metric-backed rewrites.
-          </p>
-        </div>
-        <div className="p-3.5 rounded-lg bg-[#0E0F12] border border-[#202227] space-y-1">
-          <div className="font-medium text-white">Mentorship Context Sync</div>
-          <p className="text-zinc-400 text-[11px]">
-            Results sync into your AI Career Mentor studio for interview preparation.
-          </p>
-        </div>
       </div>
     </div>
   )

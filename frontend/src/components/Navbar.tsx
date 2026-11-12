@@ -32,15 +32,15 @@ export default function Navbar() {
     ...(token
       ? [
           { label: 'Dashboard', path: '/dashboard', icon: BarChart2 },
-          { label: 'Resume Audit', path: '/upload', icon: FileText },
-          { label: 'Career Trajectory', path: '/career', icon: Compass },
-          { label: 'Career Mentor', path: '/chat', icon: MessageSquare },
+          { label: 'Resume', path: '/upload', icon: FileText },
+          { label: 'Career', path: '/career', icon: Compass },
+          { label: 'Chat', path: '/chat', icon: MessageSquare },
           { label: 'Profile', path: '/profile', icon: User }
         ]
       : [
-          { label: 'Resume Audit', path: '/login', icon: FileText },
-          { label: 'Career Trajectory', path: '/login', icon: Compass },
-          { label: 'Career Mentor', path: '/login', icon: MessageSquare }
+          { label: 'Resume', path: '/login', icon: FileText },
+          { label: 'Career', path: '/login', icon: Compass },
+          { label: 'Chat', path: '/login', icon: MessageSquare }
         ])
   ]
 

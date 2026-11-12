@@ -32,9 +32,7 @@ const COMMON_SKILLS = [
   'AWS',
   'GraphQL',
   'Kubernetes',
-  'System Design',
-  'LangChain',
-  'PyTorch'
+  'System Design'
 ]
 
 export default function UserProfile() {
@@ -136,18 +134,18 @@ export default function UserProfile() {
 
       if (!res.ok) {
         const errData = await res.json()
-        throw new Error(errData.detail || 'Failed to update candidate dossier.')
+        throw new Error(errData.detail || 'Failed to update profile.')
       }
 
       setHasUnsavedChanges(false)
       setStatusMessage({
         type: 'success',
-        text: 'Candidate dossier saved successfully.'
+        text: 'Profile saved.'
       })
     } catch (err: any) {
       setStatusMessage({
         type: 'error',
-        text: err.message || 'An error occurred while saving profile changes.'
+        text: err.message || 'Error saving profile.'
       })
     } finally {
       setSaving(false)
@@ -156,33 +154,30 @@ export default function UserProfile() {
 
   if (loading) {
     return (
-      <div className="min-h-[70vh] flex flex-col items-center justify-center gap-2">
+      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-2">
         <Loader2 className="w-5 h-5 text-zinc-400 animate-spin" />
-        <span className="text-xs text-zinc-400 font-mono">Loading candidate dossier...</span>
+        <span className="text-xs text-zinc-400 font-mono">Loading profile...</span>
       </div>
     )
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-[#202227] gap-4">
-        <div className="space-y-1">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-5 border-b border-[#202227] gap-4">
+        <div>
           <div className="flex items-center gap-2">
-            <span className="text-xs font-mono uppercase text-zinc-400">
-              Dossier / Candidate Profile
-            </span>
+            <h1 className="text-xl sm:text-2xl font-semibold text-white">
+              Profile
+            </h1>
             {hasUnsavedChanges && (
               <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 font-mono">
-                Unsaved Changes
+                Unsaved
               </span>
             )}
           </div>
-          <h1 className="text-xl sm:text-2xl font-semibold text-white">
-            Career Direction & Verified Skills
-          </h1>
-          <p className="text-xs text-zinc-400">
-            Configure your target engineering track and technical competencies to calibrate skill gap calculations.
+          <p className="text-xs text-zinc-400 mt-1">
+            Manage your target role, experience, and skills.
           </p>
         </div>
 
@@ -207,28 +202,28 @@ export default function UserProfile() {
 
       {statusMessage && (
         <div
-          className={`p-3 rounded text-xs flex items-start gap-2 ${
+          className={`p-3 rounded text-xs flex items-center gap-2 ${
             statusMessage.type === 'success'
               ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-300'
               : 'bg-rose-500/10 border border-rose-500/20 text-rose-300'
           }`}
         >
           {statusMessage.type === 'success' ? (
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
           ) : (
-            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
           )}
           <span>{statusMessage.text}</span>
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Section 1: Direction & Experience */}
-        <div className="surface-panel p-5 sm:p-6 space-y-4">
-          <div className="flex items-center gap-2 pb-3 border-b border-[#202227]">
+        {/* Section 1: General Info */}
+        <div className="surface-panel p-5 space-y-4">
+          <div className="flex items-center gap-2 pb-2 border-b border-[#202227]">
             <User className="w-4 h-4 text-zinc-400" />
             <h2 className="text-xs font-semibold uppercase tracking-wider text-white">
-              Identity & Career Direction
+              General
             </h2>
           </div>
 
@@ -248,7 +243,7 @@ export default function UserProfile() {
 
             <div>
               <label className="block text-xs font-medium text-zinc-300 mb-1.5">
-                Target Role Title
+                Target Role
               </label>
               <input
                 type="text"
@@ -261,7 +256,7 @@ export default function UserProfile() {
 
             <div>
               <label className="block text-xs font-medium text-zinc-300 mb-1.5">
-                Seniority Level
+                Experience Level
               </label>
               <select
                 value={profile.experience_level}
@@ -277,7 +272,7 @@ export default function UserProfile() {
 
             <div>
               <label className="block text-xs font-medium text-zinc-300 mb-1.5">
-                Academic Background
+                Education
               </label>
               <select
                 value={profile.education_degree}
@@ -293,12 +288,12 @@ export default function UserProfile() {
           </div>
         </div>
 
-        {/* Section 2: Technical Skills Hub */}
-        <div className="surface-panel p-5 sm:p-6 space-y-4">
-          <div className="flex items-center gap-2 pb-3 border-b border-[#202227]">
+        {/* Section 2: Skills */}
+        <div className="surface-panel p-5 space-y-4">
+          <div className="flex items-center gap-2 pb-2 border-b border-[#202227]">
             <Layers className="w-4 h-4 text-zinc-400" />
             <h2 className="text-xs font-semibold uppercase tracking-wider text-white">
-              Technical Competencies
+              Skills ({profile.technical_skills.length})
             </h2>
           </div>
 
@@ -313,7 +308,7 @@ export default function UserProfile() {
                   handleAddSkill()
                 }
               }}
-              placeholder="Type a skill and press Enter (e.g. Docker, PyTorch, GraphQL)..."
+              placeholder="Add skill (e.g. Docker, PyTorch)..."
               className="flex-1 px-3 py-2 rounded-md bg-[#0E0F12] border border-[#262830] text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition"
             />
             <button
@@ -326,38 +321,33 @@ export default function UserProfile() {
             </button>
           </div>
 
-          <div>
-            <div className="text-[11px] font-mono uppercase text-zinc-400 mb-2">
-              CATALOGED SKILLS ({profile.technical_skills.length})
-            </div>
-            {profile.technical_skills.length === 0 ? (
-              <p className="text-xs text-zinc-500 italic">
-                No technical skills cataloged. Add your competencies above or select from recommendations.
-              </p>
-            ) : (
-              <div className="flex flex-wrap gap-1.5">
-                {profile.technical_skills.map((skill) => (
-                  <span
-                    key={skill}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#0E0F12] text-zinc-200 border border-[#202227] text-xs font-mono"
+          {profile.technical_skills.length === 0 ? (
+            <p className="text-xs text-zinc-500">
+              No skills added yet. Type above or click suggestions below.
+            </p>
+          ) : (
+            <div className="flex flex-wrap gap-1.5">
+              {profile.technical_skills.map((skill) => (
+                <span
+                  key={skill}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#0E0F12] text-zinc-200 border border-[#202227] text-xs font-mono"
+                >
+                  <span>{skill}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveSkill(skill)}
+                    className="text-zinc-500 hover:text-rose-400 transition"
+                    title="Remove"
                   >
-                    <span>{skill}</span>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveSkill(skill)}
-                      className="text-zinc-500 hover:text-rose-400 transition"
-                      title="Remove"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
 
           <div className="pt-2 border-t border-[#1E2026]">
-            <div className="text-[11px] text-zinc-400 mb-1.5 font-mono">SUGGESTIONS:</div>
+            <div className="text-[11px] text-zinc-500 mb-1.5">Suggestions:</div>
             <div className="flex flex-wrap gap-1">
               {COMMON_SKILLS.filter((s) => !profile.technical_skills.includes(s)).map((s) => (
                 <button
@@ -375,41 +365,39 @@ export default function UserProfile() {
         </div>
 
         {/* Section 3: Summary / Work Experience */}
-        <div className="surface-panel p-5 sm:p-6 space-y-3">
+        <div className="surface-panel p-5 space-y-3">
           <div className="flex items-center gap-2 pb-2 border-b border-[#202227]">
             <Briefcase className="w-4 h-4 text-zinc-400" />
             <h2 className="text-xs font-semibold uppercase tracking-wider text-white">
-              Professional Chronology & Summary
+              Work Experience
             </h2>
           </div>
 
-          <div>
-            <textarea
-              rows={4}
-              value={profile.work_experience}
-              onChange={(e) => handleChange('work_experience', e.target.value)}
-              placeholder="e.g. 4 years of engineering experience focused on scalable web apps, PostgreSQL query optimization, and distributed systems architecture..."
-              className="w-full px-3 py-2 rounded-md bg-[#0E0F12] border border-[#262830] text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition resize-y font-sans"
-            />
-          </div>
+          <textarea
+            rows={4}
+            value={profile.work_experience}
+            onChange={(e) => handleChange('work_experience', e.target.value)}
+            placeholder="Briefly describe your recent experience and responsibilities..."
+            className="w-full px-3 py-2 rounded-md bg-[#0E0F12] border border-[#262830] text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition resize-y font-sans"
+          />
         </div>
 
         {/* Bottom Save Action */}
-        <div className="flex items-center justify-end gap-3 pt-2">
+        <div className="flex items-center justify-end pt-2">
           <button
             type="submit"
             disabled={saving}
-            className="px-6 py-2 rounded-md font-semibold text-xs text-zinc-950 bg-white hover:bg-zinc-200 disabled:opacity-50 transition flex items-center gap-1.5"
+            className="px-5 py-2 rounded-md font-semibold text-xs text-zinc-950 bg-white hover:bg-zinc-200 disabled:opacity-50 transition flex items-center gap-1.5"
           >
             {saving ? (
               <>
                 <Loader2 className="w-3.5 h-3.5 animate-spin text-zinc-950" />
-                <span>Saving Changes...</span>
+                <span>Saving...</span>
               </>
             ) : (
               <>
                 <Save className="w-3.5 h-3.5" />
-                <span>Save Dossier</span>
+                <span>Save Profile</span>
               </>
             )}
           </button>

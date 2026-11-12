@@ -25,10 +25,10 @@ interface ConversationItem {
 }
 
 const GUIDED_STARTERS = [
-  'How can I improve the impact metrics on my resume?',
-  'What key skills should I learn next for an AI Engineer track?',
-  'Help me rewrite a bullet point to show quantified business results.',
-  'What are common architectural questions for senior engineering interviews?'
+  'How can I improve my resume bullets?',
+  'What skills should I learn for an AI Engineer track?',
+  'Help me rewrite a bullet point with metrics.',
+  'What system design questions come up in interviews?'
 ]
 
 export default function Chatbot() {
@@ -97,7 +97,7 @@ export default function Chatbot() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({ title: 'Career Guidance Session' })
+        body: JSON.stringify({ title: 'Career Chat' })
       })
 
       if (res.ok) {
@@ -108,7 +108,7 @@ export default function Chatbot() {
           {
             role: 'assistant',
             content:
-              "Welcome to your career guidance studio. I have context of your profile, verified technical competencies, and latest ATS resume diagnostic. What career goal or interview topic shall we work on today?"
+              "Hi! I can help you improve your resume, analyze skill gaps, or prepare for technical interviews. What would you like to work on?"
           }
         ])
       }
@@ -133,7 +133,7 @@ export default function Chatbot() {
             {
               role: 'assistant',
               content:
-                "Welcome to this career session! Ask about resume bullet rewrites, skill gap closing strategies, or technical interview preparation."
+                "Ask a question about your resume, career path, or interview prep."
             }
           ])
         } else {
@@ -167,7 +167,7 @@ export default function Chatbot() {
       })
 
       if (!res.ok) {
-        throw new Error('Failed to generate career guidance response.')
+        throw new Error('Failed to get response.')
       }
 
       const data = await res.json()
@@ -178,13 +178,12 @@ export default function Chatbot() {
 
       setMessages((prev) => [...prev, assistantMsg])
     } catch (err: any) {
-      setError(err.message || 'Unable to communicate with career mentor service.')
+      setError(err.message || 'Unable to communicate with chat service.')
       setMessages((prev) => [
         ...prev,
         {
           role: 'assistant',
-          content:
-            "A temporary connection timeout occurred. Deterministic career guidance is available—feel free to retry or rephrase."
+          content: "Unable to reach the assistant. Please try again."
         }
       ])
     } finally {
@@ -250,7 +249,7 @@ export default function Chatbot() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 h-[calc(100vh-70px)] flex flex-col">
-      {/* Studio Header */}
+      {/* Header */}
       <div className="flex items-center justify-between pb-3 border-b border-[#202227] shrink-0">
         <div className="flex items-center gap-3">
           <button
@@ -263,15 +262,15 @@ export default function Chatbot() {
 
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded bg-[#181A1F] border border-[#272A31] flex items-center justify-center font-mono text-zinc-300 text-xs">
-              M/
+              C/
             </div>
             <div>
               <h1 className="text-sm font-semibold text-white flex items-center gap-2">
-                <span>Career Guidance Studio</span>
+                <span>Career Chat</span>
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
               </h1>
               <p className="text-[11px] text-zinc-400">
-                Context synchronized with resume audit and candidate profile
+                Ask about resume feedback, skill roadmap, or interview questions
               </p>
             </div>
           </div>
@@ -282,11 +281,11 @@ export default function Chatbot() {
           className="px-3 py-1.5 rounded-md text-xs font-medium bg-[#141519] hover:bg-[#1A1C22] border border-[#262830] text-zinc-200 transition flex items-center gap-1.5"
         >
           <Plus className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">New Session</span>
+          <span className="hidden sm:inline">New Chat</span>
         </button>
       </div>
 
-      {/* Main Studio Body */}
+      {/* Main Chat Body */}
       <div className="flex-1 flex gap-5 overflow-hidden pt-4">
         {/* Left Sidebar */}
         <div
@@ -294,27 +293,10 @@ export default function Chatbot() {
             sidebarOpen ? 'flex' : 'hidden'
           } md:flex flex-col w-72 lg:w-80 shrink-0 surface-panel p-4 overflow-y-auto space-y-5`}
         >
-          {/* Active Context Card */}
-          <div className="p-3 rounded-md bg-[#0E0F12] border border-[#202227] space-y-1.5">
-            <div className="text-[10px] font-mono uppercase text-zinc-400">
-              ACTIVE SESSION CONTEXT
-            </div>
-            <div className="text-xs text-zinc-300 space-y-1">
-              <div className="flex items-center justify-between">
-                <span className="text-zinc-400">Resume Context:</span>
-                <span className="font-mono text-zinc-200">Loaded</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-zinc-400">Multi-Turn Memory:</span>
-                <span className="font-mono text-emerald-400">Active</span>
-              </div>
-            </div>
-          </div>
-
           {/* Guided Starters */}
           <div className="space-y-2">
             <div className="text-[11px] font-mono uppercase text-zinc-400">
-              GUIDED QUESTIONS
+              Suggested Prompts
             </div>
             <div className="space-y-1.5">
               {GUIDED_STARTERS.map((prompt, idx) => (
@@ -330,13 +312,13 @@ export default function Chatbot() {
             </div>
           </div>
 
-          {/* Previous Sessions */}
+          {/* Past Chats */}
           {conversations.length > 1 && (
             <div className="space-y-2 pt-2 border-t border-[#1E2026]">
               <div className="text-[11px] font-mono uppercase text-zinc-400">
-                SESSION ARCHIVE
+                Past Chats
               </div>
-              <div className="space-y-1 max-h-36 overflow-y-auto">
+              <div className="space-y-1 max-h-48 overflow-y-auto">
                 {conversations.map((c) => (
                   <button
                     key={c.id}
@@ -344,13 +326,13 @@ export default function Chatbot() {
                       setActiveConversationId(c.id)
                       loadMessages(c.id)
                     }}
-                    className={`w-full text-left px-2.5 py-1.5 rounded text-xs truncate transition font-mono ${
+                    className={`w-full text-left px-2.5 py-1.5 rounded text-xs truncate transition ${
                       activeConversationId === c.id
                         ? 'bg-[#181A1F] text-white font-medium border border-[#282B33]'
                         : 'text-zinc-400 hover:text-white hover:bg-[#101216]'
                     }`}
                   >
-                    {c.title || `Session #${c.id}`}
+                    {c.title || `Chat #${c.id}`}
                   </button>
                 ))}
               </div>
@@ -365,7 +347,7 @@ export default function Chatbot() {
             {loading && messages.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center gap-2 text-zinc-500 text-xs py-12">
                 <Loader2 className="w-5 h-5 text-zinc-400 animate-spin" />
-                <span>Loading mentorship session...</span>
+                <span>Loading chat...</span>
               </div>
             ) : (
               messages.map((msg, index) => {
@@ -395,7 +377,7 @@ export default function Chatbot() {
                       }`}
                     >
                       <div className="text-[10px] font-mono uppercase text-zinc-500 mb-1">
-                        {isAssistant ? 'Career Mentor' : 'Candidate'}
+                        {isAssistant ? 'Assistant' : 'You'}
                       </div>
                       {formatMessageContent(msg.content)}
                     </div>
@@ -411,7 +393,7 @@ export default function Chatbot() {
                 </div>
                 <div className="p-3 rounded-lg bg-[#0E0F12] border border-[#202227] flex items-center gap-2 text-xs text-zinc-400 font-mono">
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span>Synthesizing technical response...</span>
+                  <span>Thinking...</span>
                 </div>
               </div>
             )}
@@ -434,7 +416,7 @@ export default function Chatbot() {
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Ask about resume rewrites, architecture questions, or interview prep..."
+                placeholder="Ask about resume rewrites, skills, or interview prep..."
                 className="flex-1 px-3 py-2 rounded-md bg-[#121316] border border-[#22242A] text-xs sm:text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500 transition resize-none max-h-32"
               />
 
@@ -447,7 +429,7 @@ export default function Chatbot() {
                 <Send className="w-3.5 h-3.5" />
               </button>
             </div>
-            <div className="text-[10px] text-zinc-500 mt-1 pl-1 hidden sm:block font-mono">
+            <div className="text-[10px] text-zinc-500 mt-1 pl-1 hidden sm:block">
               Press Enter to send, Shift+Enter for newline.
             </div>
           </div>

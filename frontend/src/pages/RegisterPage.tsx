@@ -76,10 +76,10 @@ export default function RegisterPage() {
             C/
           </div>
           <h1 className="text-xl font-semibold tracking-tight text-white">
-            Create your CareerAI account
+            Create your account
           </h1>
           <p className="text-xs text-zinc-400">
-            Set up your candidate workspace for resume audits and career tracking.
+            Enter your details to get started.
           </p>
         </div>
 
@@ -95,7 +95,7 @@ export default function RegisterPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-xs font-medium text-zinc-300 mb-1.5">
-                Work or Personal Email
+                Email
               </label>
               <input
                 type="email"
@@ -140,7 +140,7 @@ export default function RegisterPage() {
                 required
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Re-enter password"
+                placeholder="Confirm password"
                 className="w-full px-3 py-2 rounded-md bg-[#0E0F12] border border-[#262830] text-xs text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-500 transition"
               />
             </div>
@@ -194,7 +194,7 @@ export default function RegisterPage() {
             <p className="text-xs text-zinc-400">
               Already have an account?{' '}
               <Link to="/login" className="text-white hover:underline font-medium">
-                Sign in here
+                Sign in
               </Link>
             </p>
           </div>
