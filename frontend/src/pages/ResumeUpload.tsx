@@ -125,13 +125,17 @@ export default function ResumeUpload() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-16 space-y-6">
-      <div className="space-y-1">
-        <h1 className="text-2xl font-bold text-white">Upload Your Resume</h1>
-        <p className="text-xs text-zinc-400">
-          Supported formats: PDF or DOCX (max 10MB).
-        </p>
-      </div>
+    <div className="relative min-h-[calc(100vh-56px)] bg-[#090A0D] overflow-hidden">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-10%,rgba(59,130,246,0.08),transparent)] pointer-events-none" />
+      <div className="absolute inset-0 bg-[radial-gradient(#1A1D27_1px,transparent_1px)] [background-size:28px_28px] opacity-35 pointer-events-none" />
+
+      <div className="relative max-w-2xl mx-auto px-4 py-16 space-y-6">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-bold text-white">Upload Your Resume</h1>
+          <p className="text-xs text-zinc-400">
+            Supported formats: PDF or DOCX (max 10MB).
+          </p>
+        </div>
 
       {error && (
         <div className="p-3 rounded bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-2">
@@ -241,5 +245,6 @@ export default function ResumeUpload() {
         </form>
       </div>
     </div>
+  </div>
   )
 }
