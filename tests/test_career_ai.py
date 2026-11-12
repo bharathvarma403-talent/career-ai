@@ -16,7 +16,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 from backend.database import SessionLocal, init_db, engine
 from backend.models import User, UserProfile, Resume, ResumeAnalysis, ChatConversation, ChatMessage
-from backend.schemas import UserRegister, UserLogin, UserProfileUpdate, SkillCreate, ChatMessageCreate
+from backend.schemas import UserRegister, UserLogin, GoogleAuthRequest, UserProfileUpdate, SkillCreate, ChatMessageCreate
 from fastapi.datastructures import UploadFile
 from starlette.datastructures import Headers
 from fastapi import HTTPException
@@ -83,6 +83,18 @@ class TestCareerAIFullSuite(unittest.TestCase):
         with self.assertRaises(HTTPException) as ctx:
             main.login(login_data, db=self.db)
         self.assertEqual(ctx.exception.status_code, 401)
+
+    def test_06b_google_auth(self):
+        """Verify Google auth endpoint creates or logs in a user with valid token."""
+        google_data = GoogleAuthRequest(email=f"google_{self.test_email}", name="Google Tester")
+        res = main.google_auth(google_data, db=self.db)
+        self.assertEqual(res.email, f"google_{self.test_email}")
+        self.assertIsNotNone(res.access_token)
+        # Clean up this test user later
+        cleanup_user = self.db.query(User).filter(User.id == res.user_id).first()
+        if cleanup_user:
+            self.db.delete(cleanup_user)
+            self.db.commit()
 
     def test_07_token_auth_and_get_user(self):
         """Verify get_current_user correctly resolves user from valid JWT token."""

@@ -50,7 +50,7 @@ export default function Navbar() {
   }
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-[#0B0C0E]/90 backdrop-blur-md border-b border-[#202227]">
+    <header className="sticky top-0 z-50 w-full bg-[#090A0D]/90 backdrop-blur-md border-b border-[#1C2027]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14">
           {/* Brand Mark */}

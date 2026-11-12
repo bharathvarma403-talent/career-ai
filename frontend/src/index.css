@@ -2,13 +2,13 @@
 
 @layer base {
   :root {
-    --bg-page: #0B0C0E;
-    --bg-surface: #121316;
-    --bg-elevated: #181A1F;
-    --bg-subtle: #0E0F12;
-    --border-subtle: #202227;
-    --border-default: #272A31;
-    --border-hover: #363942;
+    --bg-page: #090A0D;
+    --bg-surface: #111317;
+    --bg-elevated: #161820;
+    --bg-subtle: #0D0F13;
+    --border-subtle: #1C2027;
+    --border-default: #242832;
+    --border-hover: #323744;
     --text-primary: #EDEDEE;
     --text-secondary: #9B9EA7;
     --text-muted: #646772;

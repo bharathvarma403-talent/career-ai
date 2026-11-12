@@ -23,6 +23,13 @@ class UserLogin(BaseModel):
     password: str
 
 
+class GoogleAuthRequest(BaseModel):
+    credential: Optional[str] = None
+    access_token: Optional[str] = None
+    email: Optional[EmailStr] = None
+    name: Optional[str] = None
+
+
 class UserLoginResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"

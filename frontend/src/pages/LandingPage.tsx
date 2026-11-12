@@ -18,9 +18,13 @@ export default function LandingPage() {
   const [activeTab, setActiveTab] = useState<'diff' | 'matrix'>('diff')
 
   return (
-    <div className="min-h-screen bg-[#0B0C0E] text-[#EDEDEE]">
+    <div className="relative min-h-screen bg-[#090A0D] text-[#EDEDEE] overflow-hidden">
+      {/* Ambient background glow & grid */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,rgba(59,130,246,0.14),transparent)] pointer-events-none" />
+      <div className="absolute inset-0 bg-[radial-gradient(#1A1D27_1px,transparent_1px)] [background-size:28px_28px] opacity-35 pointer-events-none" />
+
       {/* Hero Section */}
-      <section className="pt-20 pb-16 border-b border-[#202227]">
+      <section className="relative pt-20 pb-16 border-b border-[#202227]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center space-y-6">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#141519] border border-[#242730] text-xs text-zinc-400">
             <Sparkles className="w-3.5 h-3.5 text-zinc-300" />

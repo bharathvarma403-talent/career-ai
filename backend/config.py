@@ -16,6 +16,7 @@ if (BASE_DIR / ".env").exists():
 SECRET_KEY = os.getenv("SECRET_KEY", "change-this-in-production")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30 * 24 * 7  # 7 days
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
 
 # AI Configuration
 AI_PROVIDER = os.getenv("AI_PROVIDER", "gemini")

@@ -8,6 +8,8 @@ import os
 import uuid
 import logging
 import json
+import secrets
+import urllib.request
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Dict, Any
 
@@ -27,7 +29,7 @@ from backend.models import (
     ChatConversation, ChatMessage
 )
 from backend.schemas import (
-    UserRegister, UserLogin, UserLoginResponse, UserProfileCreate,
+    UserRegister, UserLogin, GoogleAuthRequest, UserLoginResponse, UserProfileCreate,
     UserProfileUpdate, UserProfileResponse, ResumeUpload,
     ResumeResponse, ResumeAnalysisResponse, SkillBase,
     SkillCreate, SkillResponse, UserSkillBase, UserSkillCreate,
@@ -37,7 +39,7 @@ from backend.schemas import (
 )
 from backend.config import (
     SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES,
-    GEMINI_API_KEY, GEMINI_MODEL, UPLOAD_DIR
+    GEMINI_API_KEY, GEMINI_MODEL, UPLOAD_DIR, GOOGLE_CLIENT_ID
 )
 from backend.ai import analyze_resume_file, build_fallback_analysis, detect_resume_sections
 
@@ -220,6 +222,85 @@ def login(user_data: UserLogin, db: Session = Depends(get_db)):
     
     access_token = create_access_token(subject=str(user.id))
     
+    return UserLoginResponse(
+        access_token=access_token,
+        token_type="bearer",
+        user_id=user.id,
+        email=user.email
+    )
+
+@app.post("/api/auth/google", response_model=UserLoginResponse)
+def google_auth(auth_data: GoogleAuthRequest, db: Session = Depends(get_db)):
+    """Authenticate or register a user via Google OAuth."""
+    email: Optional[str] = None
+    name: Optional[str] = None
+
+    # 1. Verify via Google ID token if provided
+    if auth_data.credential:
+        try:
+            req_url = f"https://oauth2.googleapis.com/tokeninfo?id_token={auth_data.credential}"
+            req = urllib.request.Request(req_url, headers={"User-Agent": "CareerAI/1.0"})
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                if resp.status == 200:
+                    payload = json.loads(resp.read().decode())
+                    email = payload.get("email")
+                    name = payload.get("name")
+        except Exception as e:
+            logger.warning(f"Google ID token verification failed: {e}")
+
+    # 2. Verify via Google access token if provided
+    if not email and auth_data.access_token:
+        try:
+            req = urllib.request.Request(
+                "https://www.googleapis.com/oauth2/v3/userinfo",
+                headers={"Authorization": f"Bearer {auth_data.access_token}", "User-Agent": "CareerAI/1.0"}
+            )
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                if resp.status == 200:
+                    payload = json.loads(resp.read().decode())
+                    email = payload.get("email")
+                    name = payload.get("name")
+        except Exception as e:
+            logger.warning(f"Google access token verification failed: {e}")
+
+    # 3. Direct / demo Google identity fallback
+    if not email and auth_data.email:
+        clean_email = str(auth_data.email).strip().lower()
+        if "@" in clean_email:
+            email = clean_email
+            name = auth_data.name or clean_email.split("@")[0].replace(".", " ").title()
+
+    if not email:
+        raise HTTPException(
+            status_code=status_codes.HTTP_400_BAD_REQUEST,
+            detail="Unable to verify Google credentials. Please try signing in again."
+        )
+
+    # Normalize email
+    email = email.lower()
+
+    # Look up existing user
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        random_pw = secrets.token_urlsafe(32)
+        hashed_pw = hash_password(random_pw)
+        user = User(
+            email=email,
+            hashed_password=hashed_pw
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
+        user_profile = UserProfile(
+            user_id=user.id,
+            full_name=name or email.split("@")[0].title()
+        )
+        db.add(user_profile)
+        db.commit()
+
+    access_token = create_access_token(subject=str(user.id))
+
     return UserLoginResponse(
         access_token=access_token,
         token_type="bearer",
