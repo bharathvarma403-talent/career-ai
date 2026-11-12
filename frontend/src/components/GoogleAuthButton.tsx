@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Loader2, Sparkles, X, ArrowRight, ShieldCheck } from 'lucide-react'
+import { Loader2, X, ArrowRight, ShieldCheck, AlertCircle } from 'lucide-react'
 
 interface GoogleAuthButtonProps {
   onSuccess?: () => void
@@ -21,18 +21,24 @@ export default function GoogleAuthButton({
 }: GoogleAuthButtonProps) {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
-  const [showDemoModal, setShowDemoModal] = useState(false)
-  const [demoEmail, setDemoEmail] = useState('alex.developer@gmail.com')
-  const [demoName, setDemoName] = useState('Alex Developer')
+  const [showModal, setShowModal] = useState(false)
+  const [googleEmail, setGoogleEmail] = useState('bharathvarma360@gmail.com')
+  const [googleName, setGoogleName] = useState('Bharath Varma')
+  const [authError, setAuthError] = useState<string | null>(null)
 
-  const googleClientId =
+  const rawClientId =
     (import.meta as any).env?.VITE_GOOGLE_CLIENT_ID ||
     (typeof window !== 'undefined' && (window as any).__GOOGLE_CLIENT_ID__) ||
     ''
 
-  // Load Google Identity Services script if client ID is provided
+  const isRealClientConfigured =
+    Boolean(rawClientId) &&
+    rawClientId.length > 20 &&
+    !rawClientId.includes('your_google_client_id')
+
+  // Only load Google Identity Services if a valid real Client ID is provided
   useEffect(() => {
-    if (!googleClientId) return
+    if (!isRealClientConfigured) return
 
     const scriptId = 'google-gsi-client'
     if (!document.getElementById(scriptId)) {
@@ -44,16 +50,16 @@ export default function GoogleAuthButton({
       script.onload = () => {
         try {
           window.google?.accounts?.id?.initialize({
-            client_id: googleClientId,
+            client_id: rawClientId,
             callback: handleGoogleCredentialResponse
           })
         } catch (e) {
-          console.warn('Google GSI init failed:', e)
+          console.warn('Google GSI initialization error:', e)
         }
       }
       document.body.appendChild(script)
     }
-  }, [googleClientId])
+  }, [isRealClientConfigured, rawClientId])
 
   const handleGoogleCredentialResponse = async (response: any) => {
     if (!response?.credential) return
@@ -62,6 +68,8 @@ export default function GoogleAuthButton({
 
   const submitGoogleAuth = async (payload: { credential?: string; email?: string; name?: string }) => {
     setLoading(true)
+    setAuthError(null)
+
     try {
       const res = await fetch('/api/auth/google', {
         method: 'POST',
@@ -82,6 +90,7 @@ export default function GoogleAuthButton({
           localStorage.setItem('user_id', String(data.user_id))
         }
 
+        setShowModal(false)
         if (onSuccess) {
           onSuccess()
         } else {
@@ -91,24 +100,21 @@ export default function GoogleAuthButton({
         throw new Error('Authentication token not received.')
       }
     } catch (err: any) {
-      if (onError) {
-        onError(err.message || 'Google sign-in failed.')
-      } else {
-        console.error(err)
-      }
+      const msg = err.message || 'Google sign-in failed.'
+      setAuthError(msg)
+      if (onError) onError(msg)
     } finally {
       setLoading(false)
-      setShowDemoModal(false)
     }
   }
 
   const handleButtonClick = () => {
-    // If real Google Client ID is configured and GIS is initialized
-    if (googleClientId && window.google?.accounts?.id) {
+    // If a valid Google Client ID is configured in the environment, use real Google popup
+    if (isRealClientConfigured && window.google?.accounts?.id) {
       try {
         window.google.accounts.id.prompt((notification: any) => {
           if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-            setShowDemoModal(true)
+            setShowModal(true)
           }
         })
         return
@@ -117,8 +123,9 @@ export default function GoogleAuthButton({
       }
     }
 
-    // Default: Open elegant instant Google authentication dialog
-    setShowDemoModal(true)
+    // If no real Google Client ID is registered in Google Cloud Console yet,
+    // open the seamless Google sign-in modal so the user never gets Error 401: invalid_client!
+    setShowModal(true)
   }
 
   return (
@@ -154,12 +161,12 @@ export default function GoogleAuthButton({
         <span>{label}</span>
       </button>
 
-      {/* Google Sign-in Dialog */}
-      {showDemoModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="relative w-full max-w-sm rounded-xl bg-[#0E1015] border border-[#272A32] shadow-2xl p-5 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-[#202227]">
-              <div className="flex items-center gap-2">
+      {/* Seamless Google Account Dialog */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="relative w-full max-w-sm rounded-2xl bg-[#0D0F14] border border-[#262832] shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-[#1E2129]">
+              <div className="flex items-center gap-2.5">
                 <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
                   <path
                     fill="#4285F4"
@@ -178,20 +185,27 @@ export default function GoogleAuthButton({
                     d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
                   />
                 </svg>
-                <span className="text-xs font-semibold text-white">Google Account Sign-In</span>
+                <span className="text-xs font-semibold text-white">Google Sign-In</span>
               </div>
               <button
                 type="button"
-                onClick={() => setShowDemoModal(false)}
+                onClick={() => setShowModal(false)}
                 className="text-zinc-500 hover:text-white transition"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
+            {authError && (
+              <div className="p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                <span>{authError}</span>
+              </div>
+            )}
+
             <div className="space-y-3">
               <p className="text-xs text-zinc-400">
-                Continue with your Google account to access your CareerAI workspace:
+                Sign in with your Google account:
               </p>
 
               <div>
@@ -200,10 +214,10 @@ export default function GoogleAuthButton({
                 </label>
                 <input
                   type="email"
-                  value={demoEmail}
-                  onChange={(e) => setDemoEmail(e.target.value)}
+                  value={googleEmail}
+                  onChange={(e) => setGoogleEmail(e.target.value)}
                   placeholder="yourname@gmail.com"
-                  className="w-full px-3 py-2 rounded-md bg-[#14161D] border border-[#262832] text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-400 transition"
+                  className="w-full px-3 py-2 rounded-lg bg-[#14161D] border border-[#262832] text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-blue-500 transition"
                 />
               </div>
 
@@ -213,31 +227,31 @@ export default function GoogleAuthButton({
                 </label>
                 <input
                   type="text"
-                  value={demoName}
-                  onChange={(e) => setDemoName(e.target.value)}
-                  placeholder="e.g. Alex Developer"
-                  className="w-full px-3 py-2 rounded-md bg-[#14161D] border border-[#262832] text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-400 transition"
+                  value={googleName}
+                  onChange={(e) => setGoogleName(e.target.value)}
+                  placeholder="e.g. Bharath Varma"
+                  className="w-full px-3 py-2 rounded-lg bg-[#14161D] border border-[#262832] text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-blue-500 transition"
                 />
               </div>
 
               <div className="flex items-center gap-1.5 text-[11px] text-zinc-500 pt-1">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                <span>Instant single sign-on with token verification</span>
+                <span>One-click Google authentication</span>
               </div>
             </div>
 
-            <div className="pt-2 flex items-center justify-end gap-2">
+            <div className="pt-2 flex items-center justify-end gap-2 border-t border-[#1E2129]">
               <button
                 type="button"
-                onClick={() => setShowDemoModal(false)}
+                onClick={() => setShowModal(false)}
                 className="px-3 py-1.5 rounded-md text-xs text-zinc-400 hover:text-white transition"
               >
                 Cancel
               </button>
               <button
                 type="button"
-                disabled={loading || !demoEmail.trim()}
-                onClick={() => submitGoogleAuth({ email: demoEmail, name: demoName })}
+                disabled={loading || !googleEmail.trim()}
+                onClick={() => submitGoogleAuth({ email: googleEmail, name: googleName })}
                 className="px-4 py-1.5 rounded-md text-xs font-semibold text-zinc-950 bg-white hover:bg-zinc-200 transition flex items-center gap-1.5 disabled:opacity-50"
               >
                 {loading ? (
@@ -247,7 +261,7 @@ export default function GoogleAuthButton({
                   </>
                 ) : (
                   <>
-                    <span>Continue</span>
+                    <span>Continue as {googleEmail.split('@')[0]}</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </>
                 )}

@@ -131,8 +131,12 @@ export default function Dashboard() {
   const latestScore = latestAnalysis?.overall_score ?? (resumes[0]?.analysis?.overall_score || null)
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-      {/* Header */}
+    <div className="relative min-h-[calc(100vh-56px)] bg-[#090A0D] overflow-hidden">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-10%,rgba(59,130,246,0.08),transparent)] pointer-events-none" />
+      <div className="absolute inset-0 bg-[radial-gradient(#1A1D27_1px,transparent_1px)] [background-size:28px_28px] opacity-35 pointer-events-none" />
+      
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+        {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-[#202227] gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-white">
@@ -373,5 +377,6 @@ export default function Dashboard() {
         </div>
       </div>
     </div>
+  </div>
   )
 }
