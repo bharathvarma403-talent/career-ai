@@ -23,26 +23,33 @@ AI_PROVIDER = os.getenv("AI_PROVIDER", "gemini")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-flash-latest")
 
+# Environment detection
+IS_VERCEL = os.getenv("VERCEL") == "1"
+
 # Database - use SQLite for development if no PostgreSQL URL set
 # For production, set DATABASE_URL to a PostgreSQL connection string
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    f"sqlite:///{str(BASE_DIR / "dev.db")}"
-)
+if IS_VERCEL:
+    DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:////tmp/dev.db")
+    UPLOAD_DIR = Path("/tmp/uploads")
+    TEMPLATES_DIR = Path("/tmp/templates")
+    STATIC_DIR = Path("/tmp/static")
+else:
+    DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{str(BASE_DIR / 'dev.db')}")
+    UPLOAD_DIR = BASE_DIR / "uploads"
+    TEMPLATES_DIR = BASE_DIR / "templates"
+    STATIC_DIR = BASE_DIR / "static"
 
 # File Upload
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 ALLOWED_EXTENSIONS = {"pdf", "docx"}
 
-# Directory paths
-UPLOAD_DIR = BASE_DIR / "uploads"
-TEMPLATES_DIR = BASE_DIR / "templates"
-STATIC_DIR = BASE_DIR / "static"
-
 # Ensure directories exist
-UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-TEMPLATES_DIR.mkdir(parents=True, exist_ok=True)
-STATIC_DIR.mkdir(parents=True, exist_ok=True)
+try:
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    TEMPLATES_DIR.mkdir(parents=True, exist_ok=True)
+    STATIC_DIR.mkdir(parents=True, exist_ok=True)
+except Exception:
+    pass
 
 # Application
 DEBUG = os.getenv("DEBUG", "True").lower() == "true"
