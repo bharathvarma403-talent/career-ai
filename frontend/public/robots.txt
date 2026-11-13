@@ -10,3 +10,4 @@ Disallow: /chat
 Disallow: /profile
 
 Sitemap: https://career-ai-neon.vercel.app/sitemap.xml
+
