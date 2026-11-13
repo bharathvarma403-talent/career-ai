@@ -728,11 +728,24 @@ def generate_personalized_recommendation(target_role: str, profile: UserProfile,
     if not required:
         required = ["core development", "git", "testing", "cloud platforms", "system design"]
 
+    if not user_skills:
+        return {
+            "match_percentage": 0.0,
+            "reason": f"No skills registered in your profile. Add your technical skills in your Profile to calculate an accurate role match score for {target_role}.",
+            "existing_skills": [],
+            "missing_skills": [m.title() for m in required],
+            "learning_priorities": [f"Learn {m.title()}" for m in required[:3]],
+            "project_suggestions": [
+                f"Build a foundational project targeting {target_role} skills like {required[0]}"
+            ],
+            "next_steps": "Navigate to the Profile page to add your verified technical skills, then re-run recommendation analysis."
+        }
+
     matched = [s for s in required if any(s in u or u in s for u in user_skills)]
     missing = [s for s in required if s not in matched]
 
     overlap_ratio = len(matched) / max(1, len(required))
-    match_percentage = round(min(95.0, max(35.0, overlap_ratio * 70.0 + 20.0)), 1)
+    match_percentage = round(min(95.0, max(10.0, overlap_ratio * 90.0)), 1)
     
     reason = (
         f"Based on your profile with {len(user_skills)} registered skills "
@@ -745,7 +758,7 @@ def generate_personalized_recommendation(target_role: str, profile: UserProfile,
     return {
         "match_percentage": match_percentage,
         "reason": reason,
-        "existing_skills": [m.title() for m in matched] if matched else ["Foundational Aptitude"],
+        "existing_skills": [m.title() for m in matched],
         "missing_skills": [m.title() for m in missing] if missing else ["Advanced System Architecture"],
         "learning_priorities": [f"Deep dive into {m.title()}" for m in missing[:3]] if missing else ["Portfolio optimization", "Mock technical interviews"],
         "project_suggestions": [

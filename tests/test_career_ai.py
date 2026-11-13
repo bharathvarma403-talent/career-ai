@@ -233,6 +233,60 @@ class TestCareerAIFullSuite(unittest.TestCase):
             main.upload_resume(file=upload, current_user=current_user, db=self.db)
         self.assertEqual(ctx.exception.status_code, 400)
 
+    def test_19_empty_profile_no_fabricated_skills(self):
+        """CA-001 Regression: Verify empty profile has 0 technical skills and no fabricated skills."""
+        # Create user with empty profile
+        empty_user = User(email=f"empty_{int(datetime.utcnow().timestamp())}@example.com", hashed_password="hashedpassword")
+        self.db.add(empty_user)
+        self.db.commit()
+        self.db.refresh(empty_user)
+
+        profile = UserProfile(user_id=empty_user.id, technical_skills=[])
+        self.db.add(profile)
+        self.db.commit()
+
+        # Recommendation should have 0 existing skills
+        rec = main.create_career_recommendation(target_role="AI Systems Engineer", current_user=empty_user, db=self.db)
+        self.assertEqual(len(rec.existing_skills), 0)
+        self.assertEqual(rec.match_percentage, 0.0)
+
+        # Cleanup
+        self.db.delete(profile)
+        self.db.delete(empty_user)
+        self.db.commit()
+
+    def test_20_career_role_case_insensitivity(self):
+        """CA-002 Regression: Verify normalized matching returns identical scores regardless of case/whitespace."""
+        current_user = main.get_current_user(token=self.token, db=self.db)
+        rec_title = main.create_career_recommendation(target_role="Cloud Solutions Architect", current_user=current_user, db=self.db)
+        rec_lower = main.create_career_recommendation(target_role="cloud solutions architect", current_user=current_user, db=self.db)
+        rec_upper = main.create_career_recommendation(target_role="  CLOUD SOLUTIONS ARCHITECT  ", current_user=current_user, db=self.db)
+
+        self.assertEqual(rec_title.match_percentage, rec_lower.match_percentage)
+        self.assertEqual(rec_title.match_percentage, rec_upper.match_percentage)
+        self.assertEqual(rec_title.missing_skills, rec_lower.missing_skills)
+
+    def test_21_long_career_title_handling(self):
+        """CA-007 Regression: Verify handling of 264-character unbroken title."""
+        current_user = main.get_current_user(token=self.token, db=self.db)
+        long_title = "A" * 264
+        rec = main.create_career_recommendation(target_role=long_title, current_user=current_user, db=self.db)
+        self.assertIsNotNone(rec.match_percentage)
+        self.assertIsNotNone(rec.target_role)
+
+    def test_22_profile_update_propagation_to_career(self):
+        """Regression: Verify profile skills propagate immediately to career recommendations."""
+        current_user = main.get_current_user(token=self.token, db=self.db)
+        # Update skills to include specific cloud skills
+        main.update_profile(
+            UserProfileUpdate(technical_skills=["AWS", "Terraform", "Kubernetes", "Docker", "CI/CD"]),
+            current_user=current_user,
+            db=self.db
+        )
+        rec = main.create_career_recommendation(target_role="Cloud Solutions Architect", current_user=current_user, db=self.db)
+        self.assertTrue(any(s in rec.existing_skills for s in ["AWS", "Terraform", "Kubernetes"]))
+        self.assertGreater(rec.match_percentage, 40.0)
+
 
 if __name__ == "__main__":
     unittest.main()
