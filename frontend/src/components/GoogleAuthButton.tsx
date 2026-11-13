@@ -54,6 +54,9 @@ export default function GoogleAuthButton({
         data = null
       }
 
+      const userName = payload.name || data?.name || googleName || 'Bharath Varma'
+      localStorage.setItem('user_name', userName)
+
       if (res.ok && data && (data.token || data.access_token)) {
         const token = data.token || data.access_token
         localStorage.setItem('token', token)
@@ -65,6 +68,8 @@ export default function GoogleAuthButton({
         localStorage.setItem('user_id', '1')
       }
     } catch {
+      const userName = payload.name || googleName || 'Bharath Varma'
+      localStorage.setItem('user_name', userName)
       localStorage.setItem('token', mockToken)
       localStorage.setItem('email', userEmail)
       localStorage.setItem('user_id', '1')

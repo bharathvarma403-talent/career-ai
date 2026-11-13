@@ -152,7 +152,7 @@ export default function Dashboard() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-[#202227] gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-white">
-            Welcome, {profile?.full_name || email.split('@')[0]}
+            Welcome, {profile?.full_name || localStorage.getItem('user_name') || email.split('@')[0]}
           </h1>
           <p className="text-xs text-zinc-400 mt-0.5">
             Targeting: <span className="text-zinc-200 font-medium">{profile?.target_role || 'Not set (update in Profile)'}</span>
