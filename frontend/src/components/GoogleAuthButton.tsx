@@ -36,6 +36,9 @@ export default function GoogleAuthButton({
     setLoading(true)
     setAuthError(null)
 
+    const userEmail = payload.email || 'bharathvarma360@gmail.com'
+    const mockToken = `session_${Date.now()}`
+
     try {
       const res = await fetch('/api/auth/google', {
         method: 'POST',
@@ -43,76 +46,36 @@ export default function GoogleAuthButton({
         body: JSON.stringify(payload)
       })
 
-      let data: any = {}
+      let data: any = null
       try {
         const text = await res.text()
-        data = text ? JSON.parse(text) : {}
+        data = text ? JSON.parse(text) : null
       } catch {
-        data = {}
+        data = null
       }
 
-      if (!res.ok) {
-        if (data.detail) {
-          throw new Error(data.detail)
-        }
-        if (res.status === 405 || res.status === 404 || res.status === 502) {
-          const mockToken = `session_${Date.now()}`
-          const userEmail = payload.email || 'bharathvarma360@gmail.com'
-          localStorage.setItem('token', mockToken)
-          localStorage.setItem('email', userEmail)
-          localStorage.setItem('user_id', '1')
-          setShowModal(false)
-          if (onSuccess) {
-            onSuccess()
-          } else {
-            navigate('/dashboard')
-          }
-          return
-        }
-        throw new Error(`Authentication server returned ${res.status}.`)
-      }
-
-      if (data.token || data.access_token) {
+      if (res.ok && data && (data.token || data.access_token)) {
         const token = data.token || data.access_token
         localStorage.setItem('token', token)
-        localStorage.setItem('email', data.email || payload.email || 'user@gmail.com')
-        if (data.user_id) {
-          localStorage.setItem('user_id', String(data.user_id))
-        }
-
-        setShowModal(false)
-        if (onSuccess) {
-          onSuccess()
-        } else {
-          navigate('/dashboard')
-        }
+        localStorage.setItem('email', data.email || userEmail)
+        if (data.user_id) localStorage.setItem('user_id', String(data.user_id))
       } else {
-        const mockToken = `session_${Date.now()}`
-        const userEmail = payload.email || 'bharathvarma360@gmail.com'
         localStorage.setItem('token', mockToken)
         localStorage.setItem('email', userEmail)
         localStorage.setItem('user_id', '1')
-        setShowModal(false)
-        if (onSuccess) {
-          onSuccess()
-        } else {
-          navigate('/dashboard')
-        }
       }
     } catch {
-      const mockToken = `session_${Date.now()}`
-      const userEmail = payload.email || 'bharathvarma360@gmail.com'
       localStorage.setItem('token', mockToken)
       localStorage.setItem('email', userEmail)
       localStorage.setItem('user_id', '1')
+    } finally {
+      setLoading(false)
       setShowModal(false)
       if (onSuccess) {
         onSuccess()
       } else {
         navigate('/dashboard')
       }
-    } finally {
-      setLoading(false)
     }
   }
 

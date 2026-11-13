@@ -65,16 +65,37 @@ export default function Dashboard() {
 
       const headers = { Authorization: `Bearer ${token}` }
 
+      const safeFetchJson = async (url: string, fallback: any) => {
+        try {
+          const r = await fetch(url, { headers })
+          if (!r.ok) return fallback
+          const t = await r.text()
+          return t ? JSON.parse(t) : fallback
+        } catch {
+          return fallback
+        }
+      }
+
       try {
         const [profData, resumesData, careerData, chatData] = await Promise.allSettled([
-          fetch('/api/profile', { headers }).then((r) => (r.ok ? r.json() : null)),
-          fetch('/api/resumes', { headers }).then((r) => (r.ok ? r.json() : [])),
-          fetch('/api/career/recommendations', { headers }).then((r) => (r.ok ? r.json() : null)),
-          fetch('/api/chat/conversations', { headers }).then((r) => (r.ok ? r.json() : []))
+          safeFetchJson('/api/profile', null),
+          safeFetchJson('/api/resumes', []),
+          safeFetchJson('/api/career/recommendations', null),
+          safeFetchJson('/api/chat/conversations', [])
         ])
 
         if (profData.status === 'fulfilled' && profData.value) {
           setProfile(profData.value)
+        } else {
+          // Check local cached profile
+          const cachedProfile = localStorage.getItem('career_ai_profile')
+          if (cachedProfile) {
+            try {
+              setProfile(JSON.parse(cachedProfile))
+            } catch {
+              // Ignore
+            }
+          }
         }
 
         if (chatData.status === 'fulfilled' && Array.isArray(chatData.value)) {
@@ -85,24 +106,15 @@ export default function Dashboard() {
           setCareerRecs(careerData.value)
         }
 
-        if (resumesData.status === 'fulfilled' && Array.isArray(resumesData.value)) {
+        if (resumesData.status === 'fulfilled' && Array.isArray(resumesData.value) && resumesData.value.length > 0) {
           const list = resumesData.value
           setResumes(list)
-          if (list.length > 0) {
-            const latest = list[0]
-            if (latest.analysis) {
-              setLatestAnalysis(latest.analysis)
-            } else {
-              try {
-                const aRes = await fetch(`/api/resumes/${latest.id}/analysis`, { headers })
-                if (aRes.ok) {
-                  const aData = await aRes.json()
-                  setLatestAnalysis(aData)
-                }
-              } catch {
-                // Ignore missing analysis
-              }
-            }
+          const latest = list[0]
+          if (latest.analysis) {
+            setLatestAnalysis(latest.analysis)
+          } else {
+            const aData = await safeFetchJson(`/api/resumes/${latest.id}/analysis`, null)
+            if (aData) setLatestAnalysis(aData)
           }
         }
       } catch (err) {
@@ -239,12 +251,22 @@ export default function Dashboard() {
                   Upload your PDF or DOCX file to get ATS scores and bullet point rewrites.
                 </p>
               </div>
-              <Link
-                to="/upload"
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-semibold text-zinc-950 bg-white hover:bg-zinc-200 transition"
-              >
-                <span>Upload Resume</span>
-              </Link>
+              <div className="flex items-center justify-center gap-2.5 pt-1">
+                <Link
+                  to="/upload"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-semibold text-zinc-950 bg-white hover:bg-zinc-200 transition"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>Upload Resume</span>
+                </Link>
+                <Link
+                  to="/analysis/1"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-medium text-zinc-300 bg-[#141519] hover:bg-[#1A1C22] border border-[#262830] transition"
+                >
+                  <ArrowUpRight className="w-3.5 h-3.5 text-zinc-400" />
+                  <span>View Sample Audit</span>
+                </Link>
+              </div>
             </div>
           ) : (
             <div className="surface-panel p-5 space-y-4">
