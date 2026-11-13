@@ -580,11 +580,19 @@ def add_skill(
 # --- Skill Gap Analysis Routes ---
 
 ROLE_CORE_SKILLS = {
-    "software engineer": ["python", "javascript", "git", "sql", "docker", "api design", "testing", "algorithms"],
-    "frontend developer": ["javascript", "react", "html/css", "typescript", "responsive design", "tailwind", "git"],
-    "backend developer": ["python", "fastapi", "sql", "postgresql", "docker", "apis", "system design", "git"],
-    "data scientist": ["python", "statistics", "machine learning", "sql", "pandas", "data visualization", "scikit-learn"],
+    "ai / machine learning engineer": ["python", "pytorch", "vector dbs", "rag pipelines", "docker", "system design", "fastapi"],
+    "machine learning engineer": ["python", "pytorch", "vector dbs", "rag pipelines", "docker", "system design"],
+    "senior full-stack engineer": ["react", "typescript", "python", "fastapi", "postgresql", "docker", "microservices", "ci/cd"],
+    "full-stack engineer": ["react", "typescript", "python", "fastapi", "postgresql", "docker", "git"],
+    "cloud solutions architect": ["aws", "gcp", "terraform", "kubernetes", "security architecture", "cost optimization", "docker"],
+    "devops & platform engineer": ["docker", "kubernetes", "ci/cd", "linux", "aws", "terraform", "monitoring"],
     "devops engineer": ["docker", "kubernetes", "ci/cd", "linux", "aws", "terraform", "monitoring"],
+    "frontend specialist": ["javascript", "react", "html/css", "typescript", "responsive design", "tailwind", "performance", "git"],
+    "frontend developer": ["javascript", "react", "html/css", "typescript", "responsive design", "tailwind", "git"],
+    "data engineer": ["python", "sql", "spark", "kafka", "postgresql", "data pipelines", "airflow"],
+    "data scientist": ["python", "statistics", "machine learning", "sql", "pandas", "data visualization", "scikit-learn"],
+    "backend developer": ["python", "fastapi", "sql", "postgresql", "docker", "apis", "system design", "git"],
+    "software engineer": ["python", "javascript", "git", "sql", "docker", "api design", "testing", "algorithms"],
     "product manager": ["product strategy", "roadmap planning", "user research", "agile", "analytics", "stakeholder management"]
 }
 

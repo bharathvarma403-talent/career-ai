@@ -67,7 +67,7 @@ export default function Navbar() {
           </Link>
 
           {/* Center Navigation Links */}
-          <nav className="hidden md:flex items-center gap-1">
+          <nav className="hidden lg:flex items-center gap-1">
             {navLinks.map((link) => {
               const active = isActive(link.path)
               return (
@@ -90,7 +90,7 @@ export default function Navbar() {
           </nav>
 
           {/* Right Action Buttons */}
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden lg:flex items-center gap-3">
             {token ? (
               <div className="flex items-center gap-2">
                 <div className="px-2.5 py-1 rounded-md bg-[#121316] border border-[#22242A] text-xs text-[#9B9EA7] max-w-[160px] truncate tabular-data">
@@ -123,8 +123,8 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* Mobile Menu Button */}
-          <div className="md:hidden flex items-center">
+          {/* Mobile/Tablet Menu Button */}
+          <div className="lg:hidden flex items-center">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="p-1.5 rounded-md bg-[#121316] text-zinc-300 border border-[#22242A]"
@@ -136,9 +136,9 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Mobile Drawer */}
+      {/* Mobile/Tablet Drawer */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-[#0E0F12] border-b border-[#202227] px-4 py-3 space-y-1">
+        <div className="lg:hidden bg-[#0E0F12] border-b border-[#202227] px-4 py-3 space-y-1">
           {token && (
             <div className="px-3 py-2 text-xs text-zinc-400 border-b border-[#202227] flex items-center justify-between mb-2">
               <span className="truncate">{userEmail}</span>

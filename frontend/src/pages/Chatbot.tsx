@@ -8,8 +8,10 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   User,
-  Bot
+  Bot,
+  X
 } from 'lucide-react'
+import { apiRequest } from '../lib/api'
 
 interface ChatMessage {
   id?: number | string
@@ -143,50 +145,24 @@ export default function Chatbot() {
       setLoading(true)
 
       try {
-        const res = await fetch('/api/chat/conversations', {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        })
-
-        if (res.ok) {
-          let list: any = []
-          try {
-            const text = await res.text()
-            list = text ? JSON.parse(text) : []
-          } catch {
-            list = []
-          }
-
-          if (Array.isArray(list) && list.length > 0) {
-            setConversations(list)
-            setActiveConversationId(list[0].id)
-            loadMessages(list[0].id)
-            return
-          }
+        const list = await apiRequest<ConversationItem[]>('/api/chat/conversations')
+        if (Array.isArray(list) && list.length > 0) {
+          setConversations(list)
+          setActiveConversationId(list[0].id)
+          await loadMessages(list[0].id)
+          return
         }
-        createNewConversation()
-      } catch (err) {
-        console.error('Failed to initialize conversation:', err)
-        createNewConversation()
+      } catch (err: any) {
+        console.warn('Could not load existing conversations:', err?.message)
       } finally {
         setLoading(false)
       }
-    }
 
-    initChat()
-  }, [token])
-
-  const createNewConversation = async () => {
-    const defaultConv: ConversationItem = {
-      id: Date.now(),
-      title: 'Career Guidance',
-      created_at: new Date().toISOString()
-    }
-
-    if (!token) {
-      setConversations([defaultConv])
-      setActiveConversationId(defaultConv.id)
+      // No past conversations exist, or server is offline.
+      // Do NOT trigger an automatic POST request on page load!
+      // Provide clean initial state ready for user prompt:
+      setConversations([])
+      setActiveConversationId(null)
       setMessages([
         {
           role: 'assistant',
@@ -194,91 +170,47 @@ export default function Chatbot() {
             "Hi! I'm your Career AI mentor. I can help you improve your resume bullets, analyze skill gaps for your target role, or prepare for technical interviews. What would you like to work on?"
         }
       ])
-      return
     }
 
-    try {
-      const res = await fetch('/api/chat/conversations', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ title: 'Career Guidance' })
-      })
+    initChat()
+  }, [token])
 
-      if (res.ok) {
-        let newConv: any = null
-        try {
-          const text = await res.text()
-          newConv = text ? JSON.parse(text) : null
-        } catch {
-          newConv = null
-        }
-
-        if (newConv && newConv.id) {
-          setConversations((prev) => [newConv, ...prev])
-          setActiveConversationId(newConv.id)
-          setMessages([
-            {
-              role: 'assistant',
-              content:
-                "Hi! I'm your Career AI mentor. I can help you improve your resume bullets, analyze skill gaps for your target role, or prepare for technical interviews. What would you like to work on?"
-            }
-          ])
-          return
-        }
-      }
-    } catch {
-      // Ignore
-    }
-
-    // Seamless fallback thread
-    setConversations((prev) => [defaultConv, ...prev.filter((c) => c.id !== defaultConv.id)])
-    setActiveConversationId(defaultConv.id)
+  const createNewConversation = () => {
+    // Explicit user action: start fresh chat thread without sending premature POST
+    setActiveConversationId(null)
     setMessages([
       {
         role: 'assistant',
         content:
-          "Hi! I'm your Career AI mentor. I can help you improve your resume bullets, analyze skill gaps for your target role, or prepare for technical interviews. What would you like to work on?"
+          "Starting a fresh conversation. What career goals or interview topics would you like to explore?"
       }
     ])
+    setSidebarOpen(false)
   }
 
   const loadMessages = async (convId: number) => {
     if (!token) return
     try {
-      const res = await fetch(`/api/chat/conversations/${convId}/messages`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      })
-
-      if (res.ok) {
-        let msgs: any = []
-        try {
-          const text = await res.text()
-          msgs = text ? JSON.parse(text) : []
-        } catch {
-          msgs = []
-        }
-
-        if (Array.isArray(msgs) && msgs.length > 0) {
-          setMessages(msgs)
-          return
-        }
+      const msgs = await apiRequest<ChatMessage[]>(`/api/chat/conversations/${convId}/messages`)
+      if (Array.isArray(msgs) && msgs.length > 0) {
+        setMessages(msgs)
+      } else {
+        setMessages([
+          {
+            role: 'assistant',
+            content: "Ask a question about your resume, career path, or interview prep."
+          }
+        ])
       }
-    } catch (err) {
-      console.error('Failed to load messages:', err)
+    } catch (err: any) {
+      console.warn('Failed to load messages for conversation:', err?.message)
+      setMessages([
+        {
+          role: 'assistant',
+          content: "Hi! How can I assist you with your career or resume today?"
+        }
+      ])
     }
-
-    setMessages([
-      {
-        role: 'assistant',
-        content:
-          "Hi! I can help you improve your resume, analyze skill gaps, or prepare for technical interviews. What would you like to work on?"
-      }
-    ])
   }
 
   const handleSendMessage = async (textToSend?: string) => {
@@ -287,31 +219,50 @@ export default function Chatbot() {
 
     setInputMessage('')
     setError(null)
+    setSidebarOpen(false)
 
     const userMsg: ChatMessage = { role: 'user', content: text }
     setMessages((prev) => [...prev, userMsg])
     setSending(true)
 
     try {
-      if (token && activeConversationId && typeof activeConversationId === 'number' && activeConversationId < 10000000000) {
-        const res = await fetch(`/api/chat/conversations/${activeConversationId}/messages`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`
-          },
-          body: JSON.stringify({ content: text })
-        })
+      let currentConvId = activeConversationId
 
-        if (res.ok) {
-          let data: any = null
-          try {
-            const resText = await res.text()
-            data = resText ? JSON.parse(resText) : null
-          } catch {
-            data = null
+      // If no active thread exists yet, create it on first message submission
+      if (!currentConvId && token) {
+        try {
+          const newConv = await apiRequest<ConversationItem>('/api/chat/conversations', {
+            method: 'POST',
+            body: JSON.stringify({ title: text.slice(0, 32) || 'Career Chat' })
+          })
+          if (newConv && newConv.id) {
+            currentConvId = newConv.id
+            setActiveConversationId(newConv.id)
+            setConversations((prev) => [newConv, ...prev.filter((c) => c.id !== newConv.id)])
           }
+        } catch (convErr: any) {
+          console.warn('Backend conversation creation failed, using local session:', convErr?.message)
+          const localConv: ConversationItem = {
+            id: Date.now(),
+            title: text.slice(0, 32) || 'Career Chat',
+            created_at: new Date().toISOString()
+          }
+          currentConvId = localConv.id
+          setActiveConversationId(localConv.id)
+          setConversations((prev) => [localConv, ...prev])
+        }
+      }
 
+      // If connected to live server thread, request assistant reply
+      if (token && currentConvId && typeof currentConvId === 'number' && currentConvId < 10000000000) {
+        try {
+          const data = await apiRequest<{ response?: string; content?: string }>(
+            `/api/chat/conversations/${currentConvId}/messages`,
+            {
+              method: 'POST',
+              body: JSON.stringify({ content: text })
+            }
+          )
           if (data && (data.response || data.content)) {
             const assistantMsg: ChatMessage = {
               role: 'assistant',
@@ -320,10 +271,12 @@ export default function Chatbot() {
             setMessages((prev) => [...prev, assistantMsg])
             return
           }
+        } catch (msgErr: any) {
+          console.warn('Live API response failed, activating client career advisor:', msgErr?.message)
         }
       }
 
-      // If offline, 405 static Vercel, or rate-limited: provide smart instant response
+      // Fallback: intelligent career response
       const fallbackReply = getSmartCareerAdvice(text)
       setMessages((prev) => [
         ...prev,
@@ -332,15 +285,8 @@ export default function Chatbot() {
           content: fallbackReply
         }
       ])
-    } catch {
-      const fallbackReply = getSmartCareerAdvice(text)
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: 'assistant',
-          content: fallbackReply
-        }
-      ])
+    } catch (err: any) {
+      setError(err?.message || 'Chat service is temporarily unavailable.')
     } finally {
       setSending(false)
     }
@@ -441,13 +387,41 @@ export default function Chatbot() {
       </div>
 
       {/* Main Chat Body */}
-      <div className="flex-1 flex gap-5 overflow-hidden pt-4">
-        {/* Left Sidebar */}
-        <div
-          className={`${
-            sidebarOpen ? 'flex' : 'hidden'
-          } md:flex flex-col w-72 lg:w-80 shrink-0 surface-panel p-4 overflow-y-auto space-y-5`}
+      <div className="relative flex-1 flex gap-5 overflow-hidden pt-4">
+        {/* Mobile Backdrop Overlay (CA-003) */}
+        {sidebarOpen && (
+          <div
+            className="fixed inset-0 z-30 bg-black/60 backdrop-blur-xs md:hidden"
+            onClick={() => setSidebarOpen(false)}
+            aria-hidden="true"
+          />
+        )}
+
+        {/* Left Sidebar (Desktop side-by-side, Mobile off-canvas overlay) (CA-003) */}
+        <aside
+          aria-label="Suggested Prompts and Chat History"
+          className={`
+            fixed md:static inset-y-0 left-0 z-40 md:z-auto
+            w-72 lg:w-80 shrink-0 surface-panel p-4 overflow-y-auto space-y-5
+            transition-transform duration-200 ease-in-out bg-[#0D0F14] md:bg-inherit
+            border-r md:border-r-0 border-[#22242A] shadow-2xl md:shadow-none
+            ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+            md:flex flex-col
+          `}
         >
+          {/* Mobile Drawer Header with Close Button */}
+          <div className="flex md:hidden items-center justify-between pb-2 border-b border-[#202227]">
+            <span className="text-xs font-semibold text-white">Suggested & History</span>
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(false)}
+              aria-label="Close sidebar"
+              className="p-1 rounded text-zinc-400 hover:text-white hover:bg-[#181A1F] transition"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
           {/* Guided Starters */}
           <div className="space-y-2">
             <div className="text-[11px] font-mono uppercase text-zinc-400">
@@ -457,8 +431,9 @@ export default function Chatbot() {
               {GUIDED_STARTERS.map((prompt, idx) => (
                 <button
                   key={idx}
+                  type="button"
                   onClick={() => handleSendMessage(prompt)}
-                  className="w-full text-left p-2 rounded bg-[#0E0F12] hover:bg-[#14161C] border border-[#202227] hover:border-[#2C2F38] text-xs text-zinc-300 hover:text-white transition flex items-start gap-2"
+                  className="w-full text-left p-2 rounded bg-[#0E0F12] hover:bg-[#14161C] border border-[#202227] hover:border-[#2C2F38] text-xs text-zinc-300 hover:text-white transition flex items-start gap-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500"
                 >
                   <ChevronRight className="w-3.5 h-3.5 text-zinc-500 mt-0.5 shrink-0" />
                   <span className="line-clamp-2">{prompt}</span>
@@ -477,11 +452,13 @@ export default function Chatbot() {
                 {conversations.map((c) => (
                   <button
                     key={c.id}
+                    type="button"
                     onClick={() => {
                       setActiveConversationId(c.id)
                       loadMessages(c.id)
+                      setSidebarOpen(false)
                     }}
-                    className={`w-full text-left px-2.5 py-1.5 rounded text-xs truncate transition ${
+                    className={`w-full text-left px-2.5 py-1.5 rounded text-xs truncate transition focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 ${
                       activeConversationId === c.id
                         ? 'bg-[#181A1F] text-white font-medium border border-[#282B33]'
                         : 'text-zinc-400 hover:text-white hover:bg-[#101216]'
@@ -493,12 +470,12 @@ export default function Chatbot() {
               </div>
             </div>
           )}
-        </div>
+        </aside>
 
         {/* Right Chat Stream */}
-        <div className="flex-1 flex flex-col surface-panel overflow-hidden">
+        <div className="flex-1 min-w-0 flex flex-col surface-panel overflow-hidden">
           {/* Messages Area */}
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4" role="log" aria-live="polite">
             {loading && messages.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center gap-2 text-zinc-500 text-xs py-12">
                 <Loader2 className="w-5 h-5 text-zinc-400 animate-spin" />
@@ -542,7 +519,7 @@ export default function Chatbot() {
             )}
 
             {sending && (
-              <div className="flex gap-3 max-w-xl mr-auto">
+              <div className="flex gap-3 max-w-xl mr-auto" aria-live="polite">
                 <div className="w-6 h-6 rounded bg-[#181A1F] border border-[#272A31] text-zinc-300 flex items-center justify-center shrink-0">
                   <Bot className="w-3.5 h-3.5" />
                 </div>
@@ -556,10 +533,14 @@ export default function Chatbot() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Input Bar */}
+          {/* Input Bar (CA-005: min-height & non-clipped placeholder) */}
           <div className="p-3 bg-[#0E0F12] border-t border-[#202227] shrink-0">
             {error && (
-              <div className="mb-2 text-xs text-rose-400 flex items-center gap-1.5">
+              <div
+                role="alert"
+                aria-live="polite"
+                className="mb-2 text-xs text-rose-400 flex items-center gap-1.5"
+              >
                 <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                 <span>{error}</span>
               </div>
@@ -572,13 +553,16 @@ export default function Chatbot() {
                 onChange={(e) => setInputMessage(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Ask about resume rewrites, skills, or interview prep..."
-                className="flex-1 px-3 py-2 rounded-md bg-[#121316] border border-[#22242A] text-xs sm:text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500 transition resize-none max-h-32"
+                aria-label="Message Career AI assistant"
+                className="flex-1 px-3 py-2.5 rounded-md bg-[#121316] border border-[#22242A] text-xs sm:text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500 focus-visible:ring-1 focus-visible:ring-blue-500 transition resize-none min-h-[44px] max-h-32 leading-normal"
               />
 
               <button
+                type="button"
                 onClick={() => handleSendMessage()}
                 disabled={!inputMessage.trim() || sending}
-                className="p-2.5 rounded-md font-medium text-zinc-950 bg-white hover:bg-zinc-200 disabled:opacity-40 disabled:cursor-not-allowed transition shrink-0"
+                aria-label="Send message"
+                className="p-2.5 rounded-md font-medium text-zinc-950 bg-white hover:bg-zinc-200 disabled:opacity-40 disabled:cursor-not-allowed transition shrink-0 min-h-[44px] min-w-[44px] flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                 title="Send message"
               >
                 <Send className="w-3.5 h-3.5" />

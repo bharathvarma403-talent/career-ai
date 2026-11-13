@@ -26,7 +26,9 @@ try:
         pass
 except Exception as e:
     logger.warning(f"Database connection to '{effective_db_url}' failed: {e}. Falling back to SQLite.")
-    sqlite_url = f"sqlite:///{str(BASE_DIR / 'dev.db')}"
+    is_vercel = os.getenv("VERCEL") == "1"
+    sqlite_path = "/tmp/dev.db" if is_vercel else str(BASE_DIR / 'dev.db')
+    sqlite_url = f"sqlite:///{sqlite_path}"
     engine = create_engine(
         sqlite_url,
         connect_args={"check_same_thread": False},

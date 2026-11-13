@@ -10,6 +10,7 @@ import {
   X,
   Loader2
 } from 'lucide-react'
+import { apiRequest } from '../lib/api'
 
 interface ProfileState {
   full_name: string
@@ -57,7 +58,7 @@ export default function UserProfile() {
 
   useEffect(() => {
     async function loadProfile() {
-      // 1. Try loading cached profile from localStorage
+      // 1. Check local cached profile first for instant rendering
       const cached = localStorage.getItem('career_ai_profile')
       if (cached) {
         try {
@@ -74,32 +75,23 @@ export default function UserProfile() {
       }
 
       try {
-        const res = await fetch('/api/profile', {
-          headers: {
-            Authorization: `Bearer ${token}`
+        const data = await apiRequest<any>('/api/profile')
+        if (data) {
+          const loaded: ProfileState = {
+            full_name: data.full_name || '',
+            target_role: data.target_role || 'Senior Full Stack Engineer',
+            experience_level: data.experience_level || 'Mid-Level',
+            education_degree: data.education_degree || "Bachelor's Degree",
+            education_field: data.education_field || 'Computer Science',
+            technical_skills: Array.isArray(data.technical_skills) ? data.technical_skills : [],
+            soft_skills: Array.isArray(data.soft_skills) ? data.soft_skills : [],
+            work_experience: typeof data.work_experience === 'string' ? data.work_experience : ''
           }
-        })
-
-        if (res.ok) {
-          const text = await res.text()
-          const data = text ? JSON.parse(text) : null
-          if (data && (data.full_name || data.target_role || data.technical_skills)) {
-            const loaded = {
-              full_name: data.full_name || '',
-              target_role: data.target_role || 'Senior Full Stack Engineer',
-              experience_level: data.experience_level || 'Mid-Level',
-              education_degree: data.education_degree || "Bachelor's Degree",
-              education_field: data.education_field || 'Computer Science',
-              technical_skills: Array.isArray(data.technical_skills) ? data.technical_skills : [],
-              soft_skills: Array.isArray(data.soft_skills) ? data.soft_skills : [],
-              work_experience: typeof data.work_experience === 'string' ? data.work_experience : ''
-            }
-            setProfile(loaded)
-            localStorage.setItem('career_ai_profile', JSON.stringify(loaded))
-          }
+          setProfile(loaded)
+          localStorage.setItem('career_ai_profile', JSON.stringify(loaded))
         }
-      } catch (err) {
-        console.error('Failed to load profile:', err)
+      } catch (err: any) {
+        console.warn('API profile load error, relying on cached state:', err?.message)
       } finally {
         setLoading(false)
       }
@@ -146,28 +138,10 @@ export default function UserProfile() {
 
     try {
       if (token) {
-        const res = await fetch('/api/profile', {
+        await apiRequest('/api/profile', {
           method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`
-          },
           body: JSON.stringify(profile)
         })
-
-        if (!res.ok) {
-          let errDetail = ''
-          try {
-            const text = await res.text()
-            const errData = text ? JSON.parse(text) : null
-            errDetail = errData?.detail || ''
-          } catch {
-            // Ignore
-          }
-          if (errDetail && res.status !== 405 && res.status !== 404) {
-            throw new Error(errDetail)
-          }
-        }
       }
 
       setHasUnsavedChanges(false)
@@ -179,7 +153,7 @@ export default function UserProfile() {
       setHasUnsavedChanges(false)
       setStatusMessage({
         type: 'success',
-        text: 'Profile saved successfully.'
+        text: 'Profile saved locally in your browser.'
       })
     } finally {
       setSaving(false)
@@ -240,6 +214,8 @@ export default function UserProfile() {
 
       {statusMessage && (
         <div
+          role="status"
+          aria-live="polite"
           className={`p-3 rounded text-xs flex items-center gap-2 ${statusMessage.type === 'success'
             ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-300'
             : 'bg-rose-500/10 border border-rose-500/20 text-rose-300'
@@ -266,39 +242,42 @@ export default function UserProfile() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-zinc-300 mb-1.5">
+              <label htmlFor="profile-full-name" className="block text-xs font-medium text-zinc-300 mb-1.5">
                 Full Name
               </label>
               <input
+                id="profile-full-name"
                 type="text"
                 value={profile.full_name}
                 onChange={(e) => handleChange('full_name', e.target.value)}
                 placeholder="Jane Doe"
-                className="w-full px-3 py-2 rounded-md bg-[#0E0F12] border border-[#262830] text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition"
+                className="w-full px-3 py-2 rounded-md bg-[#0E0F12] border border-[#262830] text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 focus-visible:ring-1 focus-visible:ring-blue-500 transition"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-zinc-300 mb-1.5">
+              <label htmlFor="profile-target-role" className="block text-xs font-medium text-zinc-300 mb-1.5">
                 Target Role
               </label>
               <input
+                id="profile-target-role"
                 type="text"
                 value={profile.target_role}
                 onChange={(e) => handleChange('target_role', e.target.value)}
                 placeholder="e.g. Senior Full Stack Engineer"
-                className="w-full px-3 py-2 rounded-md bg-[#0E0F12] border border-[#262830] text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition"
+                className="w-full px-3 py-2 rounded-md bg-[#0E0F12] border border-[#262830] text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 focus-visible:ring-1 focus-visible:ring-blue-500 transition"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-zinc-300 mb-1.5">
+              <label htmlFor="profile-experience-level" className="block text-xs font-medium text-zinc-300 mb-1.5">
                 Experience Level
               </label>
               <select
+                id="profile-experience-level"
                 value={profile.experience_level}
                 onChange={(e) => handleChange('experience_level', e.target.value)}
-                className="w-full px-3 py-2 rounded-md bg-[#0E0F12] border border-[#262830] text-xs text-white focus:outline-none focus:border-zinc-500 transition"
+                className="w-full px-3 py-2 rounded-md bg-[#0E0F12] border border-[#262830] text-xs text-white focus:outline-none focus:border-zinc-500 focus-visible:ring-1 focus-visible:ring-blue-500 transition"
               >
                 <option value="Junior">Junior (0-2 years)</option>
                 <option value="Mid-Level">Mid-Level (3-5 years)</option>
@@ -308,13 +287,14 @@ export default function UserProfile() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-zinc-300 mb-1.5">
+              <label htmlFor="profile-education-degree" className="block text-xs font-medium text-zinc-300 mb-1.5">
                 Education
               </label>
               <select
+                id="profile-education-degree"
                 value={profile.education_degree}
                 onChange={(e) => handleChange('education_degree', e.target.value)}
-                className="w-full px-3 py-2 rounded-md bg-[#0E0F12] border border-[#262830] text-xs text-white focus:outline-none focus:border-zinc-500 transition"
+                className="w-full px-3 py-2 rounded-md bg-[#0E0F12] border border-[#262830] text-xs text-white focus:outline-none focus:border-zinc-500 focus-visible:ring-1 focus-visible:ring-blue-500 transition"
               >
                 <option value="Bachelor's Degree">Bachelor's Degree</option>
                 <option value="Master's Degree">Master's Degree</option>
@@ -336,7 +316,9 @@ export default function UserProfile() {
 
           <div className="flex gap-2">
             <input
+              id="profile-new-skill"
               type="text"
+              aria-label="Add technical skill"
               value={newSkill}
               onChange={(e) => setNewSkill(e.target.value)}
               onKeyDown={(e) => {
@@ -346,12 +328,12 @@ export default function UserProfile() {
                 }
               }}
               placeholder="Add skill (e.g. Docker, PyTorch)..."
-              className="flex-1 px-3 py-2 rounded-md bg-[#0E0F12] border border-[#262830] text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition"
+              className="flex-1 px-3 py-2 rounded-md bg-[#0E0F12] border border-[#262830] text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 focus-visible:ring-1 focus-visible:ring-blue-500 transition"
             />
             <button
               type="button"
               onClick={() => handleAddSkill()}
-              className="px-3 py-2 rounded-md font-medium text-xs text-zinc-200 bg-[#16181E] hover:bg-[#1E2028] border border-[#262830] transition flex items-center gap-1"
+              className="px-3 py-2 rounded-md font-medium text-xs text-zinc-200 bg-[#16181E] hover:bg-[#1E2028] border border-[#262830] transition flex items-center gap-1 focus-visible:ring-1 focus-visible:ring-blue-500"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Add</span>
@@ -363,10 +345,11 @@ export default function UserProfile() {
               No skills added yet. Type above or click suggestions below.
             </p>
           ) : (
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-1.5" role="list" aria-label="Technical skills list">
               {profile.technical_skills.map((skill) => (
                 <span
                   key={skill}
+                  role="listitem"
                   className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#0E0F12] text-zinc-200 border border-[#202227] text-xs font-mono"
                 >
                   <span>{skill}</span>
@@ -374,7 +357,8 @@ export default function UserProfile() {
                     type="button"
                     onClick={() => handleRemoveSkill(skill)}
                     className="text-zinc-500 hover:text-rose-400 transition"
-                    title="Remove"
+                    title={`Remove ${skill}`}
+                    aria-label={`Remove ${skill}`}
                   >
                     <X className="w-3 h-3" />
                   </button>
@@ -391,7 +375,8 @@ export default function UserProfile() {
                   key={s}
                   type="button"
                   onClick={() => handleAddSkill(s)}
-                  className="text-[11px] px-2 py-0.5 rounded bg-[#0E0F12] hover:bg-[#16181E] text-zinc-400 hover:text-white border border-[#202227] transition flex items-center gap-1 font-mono"
+                  aria-label={`Add suggestion: ${s}`}
+                  className="text-[11px] px-2 py-0.5 rounded bg-[#0E0F12] hover:bg-[#16181E] text-zinc-400 hover:text-white border border-[#202227] transition flex items-center gap-1 font-mono focus-visible:ring-1 focus-visible:ring-blue-500"
                 >
                   <Plus className="w-2.5 h-2.5" />
                   <span>{s}</span>
@@ -406,16 +391,17 @@ export default function UserProfile() {
           <div className="flex items-center gap-2 pb-2 border-b border-[#202227]">
             <Briefcase className="w-4 h-4 text-zinc-400" />
             <h2 className="text-xs font-semibold uppercase tracking-wider text-white">
-              Work Experience
+              <label htmlFor="profile-work-experience">Work Experience</label>
             </h2>
           </div>
 
           <textarea
+            id="profile-work-experience"
             rows={4}
             value={profile.work_experience}
             onChange={(e) => handleChange('work_experience', e.target.value)}
             placeholder="Briefly describe your recent experience and responsibilities..."
-            className="w-full px-3 py-2 rounded-md bg-[#0E0F12] border border-[#262830] text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition resize-y font-sans"
+            className="w-full px-3 py-2 rounded-md bg-[#0E0F12] border border-[#262830] text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 focus-visible:ring-1 focus-visible:ring-blue-500 transition resize-y font-sans"
           />
         </div>
 

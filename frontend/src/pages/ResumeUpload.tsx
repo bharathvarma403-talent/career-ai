@@ -174,11 +174,20 @@ export default function ResumeUpload() {
 
           {!file ? (
             <div
+              role="button"
+              tabIndex={0}
+              aria-label="Upload resume file in PDF or DOCX format"
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
-              className={`border border-dashed rounded-lg p-10 text-center cursor-pointer transition flex flex-col items-center justify-center gap-3 ${
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  fileInputRef.current?.click()
+                }
+              }}
+              className={`border border-dashed rounded-lg p-10 text-center cursor-pointer transition flex flex-col items-center justify-center gap-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
                 isDragging
                   ? 'border-zinc-300 bg-[#16181E]'
                   : 'border-[#262830] hover:border-zinc-400 hover:bg-[#101216]'

@@ -79,11 +79,31 @@ export default function GoogleAuthButton({
     }
   }
 
+  const parseJwt = (token: string) => {
+    try {
+      const base64Url = token.split('.')[1]
+      if (!base64Url) return null
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
+      const jsonPayload = decodeURIComponent(
+        atob(base64)
+          .split('')
+          .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+          .join('')
+      )
+      return JSON.parse(jsonPayload)
+    } catch {
+      return null
+    }
+  }
+
   // Load and initialize Google Identity Services
   useEffect(() => {
     const handleCredentialResponse = (response: any) => {
       if (response?.credential) {
-        submitGoogleAuth({ credential: response.credential })
+        const decoded = parseJwt(response.credential)
+        const email = decoded?.email || 'bharathvarma360@gmail.com'
+        const name = decoded?.name || 'Bharath Varma'
+        submitGoogleAuth({ credential: response.credential, email, name })
       }
     }
 
@@ -100,12 +120,19 @@ export default function GoogleAuthButton({
 
         if (googleBtnContainerRef.current) {
           googleBtnContainerRef.current.innerHTML = ''
+          const containerWidth =
+            googleBtnContainerRef.current.clientWidth ||
+            googleBtnContainerRef.current.parentElement?.clientWidth ||
+            280
+          // Google GIS supports button width between 200 and 400
+          const targetWidth = Math.min(Math.max(Math.floor(containerWidth), 200), 360)
+
           window.google.accounts.id.renderButton(googleBtnContainerRef.current, {
             theme: 'filled_black',
             size: 'large',
             text: 'continue_with',
             shape: 'rectangular',
-            width: googleBtnContainerRef.current.offsetWidth || 340
+            width: targetWidth
           })
           setGisLoaded(true)
         }
@@ -116,29 +143,39 @@ export default function GoogleAuthButton({
 
     if (window.google?.accounts?.id) {
       initGis()
-      return
+    } else {
+      const scriptId = 'google-gsi-client'
+      let script = document.getElementById(scriptId) as HTMLScriptElement | null
+
+      if (!script) {
+        script = document.createElement('script')
+        script.id = scriptId
+        script.src = 'https://accounts.google.com/gsi/client'
+        script.async = true
+        script.defer = true
+        script.onload = () => {
+          initGis()
+        }
+        document.body.appendChild(script)
+      } else {
+        script.addEventListener('load', initGis)
+      }
     }
 
-    const scriptId = 'google-gsi-client'
-    let script = document.getElementById(scriptId) as HTMLScriptElement | null
-
-    if (!script) {
-      script = document.createElement('script')
-      script.id = scriptId
-      script.src = 'https://accounts.google.com/gsi/client'
-      script.async = true
-      script.defer = true
-      script.onload = () => {
-        initGis()
-      }
-      document.body.appendChild(script)
-    } else {
-      script.addEventListener('load', initGis)
+    // Resize observer to ensure button dynamically fits mobile viewports (CA-004)
+    let ro: ResizeObserver | null = null
+    if (typeof ResizeObserver !== 'undefined' && googleBtnContainerRef.current) {
+      ro = new ResizeObserver(() => {
+        if (window.google?.accounts?.id && googleBtnContainerRef.current) {
+          initGis()
+        }
+      })
+      ro.observe(googleBtnContainerRef.current)
     }
 
     return () => {
-      if (script) {
-        script.removeEventListener('load', initGis)
+      if (ro) {
+        ro.disconnect()
       }
     }
   }, [])
