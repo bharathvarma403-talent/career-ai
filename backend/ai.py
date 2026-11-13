@@ -11,11 +11,11 @@ Follows the requirements:
 - Validate the AI output before saving or displaying it
 """
 
-import google.generativeai as genai
-from typing import Optional, Dict, List, Any
 import json
 import re
 import logging
+import requests
+from typing import Optional, Dict, List, Any
 from backend.config import GEMINI_MODEL
 
 logger = logging.getLogger(__name__)
@@ -26,19 +26,36 @@ TEMPERATURE = 0.2  # Low temperature for more consistent, factual outputs
 
 
 def configure_api(api_key: str) -> None:
-    """Configure the Gemini API with the given API key."""
-    genai.configure(api_key=api_key)
+    """Configure the Gemini API with the given API key if SDK is available."""
+    try:
+        import google.generativeai as genai
+        genai.configure(api_key=api_key)
+    except Exception:
+        pass
 
 
 def get_model():
-    """Get the configured Gemini generative model."""
-    return genai.GenerativeModel(MODEL_NAME)
+    """Get the configured Gemini generative model if SDK is available."""
+    try:
+        import google.generativeai as genai
+        return genai.GenerativeModel(MODEL_NAME)
+    except Exception:
+        return None
 
 
 def extract_text_from_pdf(file_path: str) -> str:
-    """Extract text content from a PDF file using PyMuPDF."""
-    import fitz
+    """Extract text content from a PDF file using pypdf or PyMuPDF."""
     try:
+        from pypdf import PdfReader
+        reader = PdfReader(file_path)
+        text = "\n".join(page.extract_text() or "" for page in reader.pages)
+        if text.strip():
+            return text.strip()
+    except Exception:
+        pass
+
+    try:
+        import fitz
         doc = fitz.open(file_path)
         text = ""
         for page in doc:
@@ -149,80 +166,45 @@ def analyze_resume_ai(
     # Build the analysis prompt
     prompt = build_analysis_prompt(text)
     
-    try:
-        response = model.generate_content(
-            prompt,
-            request_options={"timeout": 6.0},
-            generation_config={
-                "temperature": TEMPERATURE,
-                "max_output_tokens": 4096,
-                "response_mime_type": "application/json",
-                "response_schema": {
-                    "type": "object",
-                    "properties": {
-                        "overall_score": {"type": "number"},
-                        "section_scores": {"type": "object", "additionalProperties": {"type": "number"}},
-                        "detected_mistakes": {
-                            "type": "array",
-                            "items": {
-                                "type": "object",
-                                "properties": {
-                                    "category": {"type": "string"},
-                                    "message": {"type": "string"},
-                                    "severity": {"type": "string"},
-                                    "evidence": {"type": "string"},
-                                    "suggestion": {"type": "string"}
-                                },
-                                "required": ["category", "message", "evidence"]
-                            }
-                        },
-                        "strengths": {"type": "string"},
-                        "weaknesses": {"type": "string"},
-                        "suggestions": {"type": "string"},
-                        "improved_bullets": {
-                            "type": "array",
-                            "items": {"type": "string"},
-                            "description": "Improved versions of weak bullet points"
-                        },
-                        "section_assessment": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "object",
-                                "properties": {
-                                    "score": {"type": "number"},
-                                    "completeness": {"type": "string"},
-                                    "issues": {"type": "array", "items": {"type": "string"}}
-                                }
-                            }
-                        }
-                    },
-                    "required": ["overall_score", "section_scores", "detected_mistakes", "strengths", "weaknesses", "suggestions"]
+    # 1. Direct REST call to Gemini API using lightweight requests
+    if api_key:
+        try:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL_NAME}:generateContent?key={api_key}"
+            payload = {
+                "contents": [{"parts": [{"text": prompt}]}],
+                "generationConfig": {
+                    "temperature": TEMPERATURE,
+                    "maxOutputTokens": 4096,
+                    "responseMimeType": "application/json"
                 }
             }
-        )
-        
-        # Parse the JSON response
-        result = json.loads(response.text)
-        
-        # Validate and normalize the result
-        result = validate_analysis_output(result, text)
-        
-        # Add disclaimer about indicative nature of scores
-        if "disclaimer" not in result:
-            result["disclaimer"] = (
-                "Note: This resume score is an indicative assessment based on "
-                "common resume best practices and may not reflect universal hiring "
-                "standards. ATS compatibility varies by system and employer."
-            )
-        
-        return result
-        
-    except json.JSONDecodeError as e:
-        # If AI doesn't return valid JSON, fall back to rule-based analysis
-        return build_fallback_analysis(text)
-    except Exception as e:
-        # If AI analysis fails, return fallback
-        return build_fallback_analysis(text)
+            resp = requests.post(url, json=payload, timeout=8.0)
+            if resp.status_code == 200:
+                data = resp.json()
+                raw_json = data["candidates"][0]["content"]["parts"][0]["text"]
+                result = json.loads(raw_json)
+                result = validate_analysis_output(result, text)
+                if "disclaimer" not in result:
+                    result["disclaimer"] = (
+                        "Note: This resume score is an indicative assessment based on "
+                        "common resume best practices and may not reflect universal hiring "
+                        "standards. ATS compatibility varies by system and employer."
+                    )
+                return result
+        except Exception as e:
+            logger.warning(f"Gemini REST direct call failed: {e}. Attempting fallback.")
+
+    # 2. SDK call if google.generativeai is installed
+    if model:
+        try:
+            response = model.generate_content(prompt, request_options={"timeout": 6.0})
+            result = json.loads(response.text)
+            return validate_analysis_output(result, text)
+        except Exception:
+            pass
+
+    # 3. Deterministic rule-based fallback
+    return build_fallback_analysis(text)
 
 
 def build_analysis_prompt(text: str) -> str:

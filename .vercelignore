@@ -1,0 +1,8 @@
+frontend/node_modules/
+tests/
+uploads/
+venv/
+.venv/
+.git/
+career_ai/
+*.md

@@ -1028,12 +1028,14 @@ Guidelines:
     # Try calling Gemini
     if GEMINI_API_KEY:
         try:
-            import google.generativeai as genai
-            genai.configure(api_key=GEMINI_API_KEY)
-            model = genai.GenerativeModel(GEMINI_MODEL or "gemini-flash-latest")
-            response = model.generate_content(prompt, request_options={"timeout": 6.0})
-            if response and response.text:
-                return response.text.strip()
+            import requests
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL or 'gemini-flash-latest'}:generateContent?key={GEMINI_API_KEY}"
+            resp = requests.post(url, json={"contents": [{"parts": [{"text": prompt}]}]}, timeout=6.0)
+            if resp.status_code == 200:
+                data = resp.json()
+                text = data["candidates"][0]["content"]["parts"][0]["text"]
+                if text:
+                    return text.strip()
         except Exception as e:
             logger.warning(f"Gemini API call failed in chat: {e}. Using intelligent fallback.")
 
