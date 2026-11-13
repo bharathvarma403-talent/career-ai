@@ -3,6 +3,9 @@
   "outputDirectory": "frontend/dist",
   "framework": "vite",
   "functions": {
+    "api/*.py": {
+      "excludeFiles": "{frontend/**,tests/**,uploads/**,career_ai/**,static/**,templates/**}"
+    },
     "api/**/*.py": {
       "excludeFiles": "{frontend/**,tests/**,uploads/**,career_ai/**,static/**,templates/**}"
     }
