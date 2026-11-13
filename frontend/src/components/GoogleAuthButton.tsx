@@ -202,11 +202,11 @@ export default function GoogleAuthButton({
   }
 
   return (
-    <div className="w-full space-y-2">
+    <div className="w-full space-y-2 overflow-hidden">
       {/* Official Google GIS Button Container */}
       <div
         ref={googleBtnContainerRef}
-        className={`w-full flex justify-center [&>div]:w-full ${gisLoaded ? 'block' : 'hidden'}`}
+        className={`w-full flex justify-center [&>div]:max-w-full [&>div]:w-full [&_iframe]:max-w-full ${gisLoaded ? 'block' : 'hidden'}`}
       />
 
       {/* High-quality Fallback Button (visible while GIS loads or if blocked) */}

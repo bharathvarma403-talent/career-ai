@@ -93,7 +93,7 @@ export default function LoginPage() {
         </div>
 
         {/* Card Container */}
-        <div className="rounded-2xl bg-[#0D0F14]/90 backdrop-blur-xl border border-[#20232B] shadow-2xl p-6 sm:p-8 space-y-5">
+        <div className="rounded-2xl bg-[#0D0F14]/90 backdrop-blur-xl border border-[#20232B] shadow-2xl p-5 sm:p-8 space-y-5 overflow-hidden">
           {/* Google Sign In */}
           <GoogleAuthButton
             label="Continue with Google"
